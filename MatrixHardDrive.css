@@ -1,0 +1,66 @@
+body{
+	background-color:rgba(255,60,1,255);
+	color:black;
+	margin:0;
+	font-family:Monospace;
+	font-size:10px;
+	overscroll-behavior:none;
+}
+a{
+	color:#ff3c00;
+	text-decoration:none;
+}
+a:hover{
+	color:#000000;
+	text-decoration:underline;
+}
+button{
+	background-color:rgba(255,60,0,1.0);
+	border:none;
+	color:black;
+	cursor:pointer;
+}
+#info{
+	position:absolute;
+	top:0px;
+	width:100%;
+	padding:10px;
+	box-sizing:border-box;
+	text-align:center;
+	-moz-user-select:none;
+	-webkit-user-select:none;
+	-ms-user-select:none;
+	user-select:none;
+	pointer-events:none;
+	z-index:1;
+}
+a,button,input,select{
+	background-color:rgba(255,60,0,1.0);
+	border:none;
+	color:black;
+	pointer-events:auto;
+}
+textarea{
+	background-color:black;
+	color:grey;
+	scrollbar-face-color:black;
+	scrollbar-track-color:rgba(255,60,0,1.0);
+	scrollbar-arrow-color:black;
+	scrollbar-highlight-color:orange;
+	scrollbar-shadow-color:orange;
+	scrollbar-3dlight-color:orange;
+	scrollbar-darkshadow-color:orange;
+	border:none;
+	pointer-events:auto;
+
+}
+colorpicker{
+	display:inline-block;
+	margin:0 10px
+}
+#divTouchscreenKeyboard{
+	pointer-events:auto;
+}
+#divTouchscreenTouchpad{
+	pointer-events:auto;
+}

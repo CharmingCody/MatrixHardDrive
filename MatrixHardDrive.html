@@ -1,0 +1,3384 @@
+<!DOCTYPE html>
+<html lang="en">
+	<head>
+		<title>MatrixHardDrive</title>
+		<meta charset="utf-8">
+		<meta name="viewport" content="width=device-width,initial-scale=1.0,user-scalable=no">
+		<!--<link type="text/css" rel="stylesheet" href="../three.js-master/examples/main.css">-->
+		<link type="text/css" rel="stylesheet" href="./MatrixHardDrive.css">
+		<style>
+			.colorPicker{
+				display:inline-block;
+				margin:0 10px
+			}
+		</style>
+	</head>
+	<body>
+		<div id="info">
+			<a id="btnHideInfo" onclick="window.mhd.btnHideInfoClicked()">Hide info overlay</a>
+			<a id="btnShowComputerScreen" onclick="window.mhd.btnShowComputerScreenPressed()">Show computer screen</a>
+			<div id="divComputer" style="display:none">
+					divComputer
+					<a id="divComputer_btnShowTextScreenContent" onclick="window.mhd.divComputer_btnShowTextScreenContentPressed()">Show Text Screen Content</a>
+					<a id="divComputer_btnShowScreenCanvasContent" onclick="window.mhd.divComputer_btnShowScreenCanvasContentPressed()">Show Screen Canvas Content</a>
+					<a id="divComputer_btnShowTheNetspacesLite" onclick="window.mhd.divComputer_btnShowTheNetspacesLitePressed()">Show The Netspaces Lite</a>
+				<div id="divTextScreenContent" style="display:none">
+					<center>
+					divTextScreenContent
+					</center>
+				</div>
+				<div id="divScreenCanvasContent" style="display:none">
+					<center>
+					divScreenCanvasContent
+					</center>
+				</div>
+				<div id="divTheNetspacesLite" style="display:none">
+					divTheNetspacesLite
+				</div>
+			</div>
+			<input type="checkbox" id="chkAutodrive" checked/>Autodrive
+			<input type="checkbox" id="chkEditorMode"/>Editor mode
+			<a id="save" download="map.txt" href="data:text/plain,no data to save, press the button first&#10;">Download map.txt</a>
+			<br><br>
+			<span class="colorPicker"><input id="main1color" type="color" value="#000000"></input><br/>Main1</span>
+			<span class="colorPicker"><input id="main2color" type="color" value="#ff3c00"></input><br/>Main2</span>
+			<span class="colorPicker"><input id="main3color" type="color" value="#ff4b00"></input><br/>Main3</span>
+			<span class="colorPicker"><input id="trailerMain1color" type="color" value="#000000"></input><br/>TrailerMain1</span>
+			<span class="colorPicker"><input id="trailerMain2color" type="color" value="#ff3c00"></input><br/>TrailerMain2</span>
+			<span class="colorPicker"><input id="metalColor" type="color" value="#a4a4a4"></input><br/>Metal</span>
+			<span class="colorPicker"><input id="darkMetalColor" type="color" value="#000000"></input><br/>DarkMetal</span>
+			<span class="colorPicker"><input id="glassColor" type="color" value="#ffffff"></input><br/>Glass</span>
+			<span class="colorPicker"><input id="darkGlassColor" type="color" value="#000000"></input><br/>DarkGlass</span>
+			<span class="colorPicker"><input id="plastic0color" type="color" value="#ffffff"></input><br/>Plastic0</span>
+			<span class="colorPicker"><input id="plastic1color" type="color" value="#000000"></input><br/>Plastic1</span>
+			<span class="colorPicker"><input id="plastic2color" type="color" value="#ff3c00"></input><br/>Plastic2</span>
+			<span class="colorPicker"><input id="interior1color" type="color" value="#000000"></input><br/>Interior1</span>
+			<span class="colorPicker"><input id="interior2color" type="color" value="#ff3c00"></input><br/>Interior2</span>
+			<span class="colorPicker"><input id="textileColor" type="color" value="#151515"></input><br/>Textile</span>
+			<span class="colorPicker"><input id="furnitureColor" type="color" value="#020202"></input><br/>Furniture</span>
+			<span class="colorPicker"><input id="frontBoardColor" type="color" value="#070707"></input><br/>FrontBoard</span>
+			<span class="colorPicker"><input id="carpetColor" type="color" value="#303030"></input><br/>Carpet</span>
+			<div id="divTransformControlsInfo" style="display:none">
+				"W" translate | "E" rotate | "R" scale | "+/-" adjust size<br />
+				"Q" toggle world/local space |  "Shift" snap to grid<br />
+				"X" toggle X | "Y" toggle Y | "Z" toggle Z | "Spacebar" toggle enabled<br />
+				"C" toggle camera | "V" random zoom
+			</div>
+			<div id="divJoysticks" style="display:none">
+				Joystick connected
+			</div>
+		</div>
+		<div id="container"></div>
+		<script type="module">
+			import * as THREE from "../three.js-master/build/three.module.js";
+			import{GLTFExporter} from "../three.js-master/examples/jsm/exporters/GLTFExporter.js";
+			import{GUI} from "../three.js-master/examples/jsm/libs/dat.gui.module.js";
+			import{OrbitControls,MapControls} from "./three.js-modiffs/mhd_OrbitControls.js";
+			import{TransformControls} from "../three.js-master/examples/jsm/controls/TransformControls.js";
+			import{RoomEnvironment} from "../three.js-master/examples/jsm/environments/RoomEnvironment.js";
+
+			import{
+				TriangleSelectorObject,
+				SphereSelectorObject,
+				BoxSelectorObject
+			} from "./mhd_MatrixHardDriveObjects.js";
+			import{RegionManager} from "./mhd_RegionManager.js";
+			import{RoadObject,RoadsObject} from "./mhd_MatrixHardDriveObjects.js";
+
+			import{GLTFLoader} from "../three.js-master/examples/jsm/loaders/GLTFLoader.js";
+			import{DRACOLoader} from "../three.js-master/examples/jsm/loaders/DRACOLoader.js";
+			import{Computer,Program_Bash,Program_SnakeGame,Program_BinarySnakeGame,Program_DictionaryTraining,Program_Terminal,XWindow,Program_startx,Program_txtFunFunFun,TextWindow,InchesKeyboard,Program_TextEditor} from "./mhd_Computer.js"
+			import{The_Netspaces,ExtensionManager} from "./mhd_TheNetspacesLite.js";
+
+var MatrixHardDrive=function(){
+	//performance{ screen resolution and that:
+	this.intInstanciatedRocks=100;
+	this.intTrees=1000;
+	this.intBuildings=50;
+	this.lstComputerScreens=[];//in carLoadingFunction every object with material "touchscreen_black"
+	this.lstComputers=[];
+	this.intActiveComputer=-1;
+	this.intActiveComputerCounter=0;
+	this.intActiveComputerRefreshRate=3;
+	this.intInactiveComputersCounter=0;
+	this.intInactiveComputerRefreshRate=10;
+	//this.intGeneratedCylindersBase=16;
+	this.intGeneratedCylindersBase=32;
+	this.intGeneratedSpheresWidthSegments=32;
+	this.intGeneratedSpheresHeihtSegments=16;
+	//performance}
+	this.fltStandardRaycastHeight=100;
+	this.fltRoadHeight=0.01;
+	this.fltRoadWidth=2;
+	this.blnHandbrake=false;
+	this.blnCameraLookaroundMode=false;
+	this.fltCameraWalkingSpeedX=0.001;
+	this.fltCameraWalkingSpeedY=0.001;
+	this.fltCameraWalkingSpeedZ=0.001;
+	this.fltCameraRunningSpeedX=0.01;
+	this.fltCameraRunningSpeedY=0.01;
+	this.fltCameraRunningSpeedZ=0.01;
+	this.fltSquatingSpeed=0.5;
+	this.intKeyboard=0;//keys state for longer time
+	this.intKeyboardClick=0;//keys state for single click action
+	this.fltArrowTurnShort=5;
+	this.fltArrowTurnLong=10;
+	this.fltArrowTurn=this.fltArrowTurnShort;
+	this.lstArrowKeysDown=null;
+	this.fltLongKeypress=1500;
+	this.fltVelocityLimit=.3;
+	this.intGearSign=1;
+	this.intGear=5;
+	this.fltArrowVelocityShort=.005;
+	this.fltArrowVelocityLong=.1;
+	this.fltArrowVelocity=this.fltArrowVelocityShort;
+	this.fltDeceleratingMass=0.000075;
+	this.fltMaximalJumpHeight=5;
+	this.dctTmpMaterials=null;
+	this.dctTmpTemplateObjects=null;
+	this.fltDefaultRoadWidth=1;
+	this.fltWheelsRaycasterEpsUp=-0.01;
+	this.fltWheelsRaycasterEpsDown=0.05;
+	this.fltWheelsRaycasterEps=0.05;
+	this.objJoysticks={intConnectedJoystics:0};
+	this.fltJoystickToVirtualSteeringWheel=-2.5;
+	this.fltSteeringWheelToWheels=-2.5/0.042;
+	this.lstSteeringWheelButtonsDown=[];
+	this.chkAutodrive=document.getElementById("chkAutodrive");
+	this.chkAutodrive.onchange=function(){
+		var that=window.mhd;
+	}
+	this.chkEditorMode=document.getElementById("chkEditorMode");
+	this.divTransformControlsInfo=document.getElementById("divTransformControlsInfo");
+	this.blnAutodrivePrev=this.chkAutodrive.checked;
+	this.blnEditorModePrev=this.chkEditorMode.checked;
+	this.editorRaycaster=new THREE.Raycaster();
+	this.editorRaycaster.layers.set(1);
+	this.intersectedObject=null;
+	this.intersectedFace=null;
+	this.intIntersectedFaceIndex=-1;
+	this.vec3intersectedPoint=null;
+	this.intSelectedVertexIndex=-1;
+	this.vec3selectedVertex=null;
+	this.vec3carWorldPosition=new THREE.Vector3();
+	this.lstWheels=[];
+	//this.fltCameraHeight=0.3;
+	//With many trailers slightly higher (scroll++/--)
+	this.fltCameraHeight=0.5;
+	this.fltCameraRear=2;
+	this.fltCameraX=0;
+	this.container=document.getElementById("container");
+	this.renderer=new THREE.WebGLRenderer({antialias:true});
+	this.renderer.setPixelRatio(window.devicePixelRatio);
+	this.renderer.setSize(window.innerWidth,window.innerHeight);
+	this.renderer.xr.enabled=true;
+	this.renderer.xr.setReferenceSpaceType("local");
+	this.container.appendChild(this.renderer.domElement);
+	this.vec3position=new THREE.Vector3();
+	this.vec3prevPosition=new THREE.Vector3();
+	this.lstVec3prevTangents=[];
+	//this.intTrailers=0;
+	//this.intTrailers=1;
+	//this.intTrailers=2;
+	this.intTrailers=3;
+	this.intTrailersToLoad=this.intTrailers;
+	this.intLstVec3prevTangentsLengthForTrailer_autodrive=1;
+	this.intLstVec3prevTangentsLengthForTrailer=2;
+	//this.intCameraNumber=1;
+	this.intCameraNumber=2;
+	this.vec3lastCorrectionPosition=this.vec3position.clone();
+	this.fltLastCorrectionPosition=0.1;
+	this.fltRegionWidth=500;this.fltRegionHeight=500;this.intWidthSegments=15;this.intHeightSegments=15;
+	this.lstRegionsToUpdate=null;
+	this.scene=new THREE.Scene();
+	this.scene.background=new THREE.Color(0xf0f0ff);
+	this.environment=new RoomEnvironment();
+	this.pmremGenerator=new THREE.PMREMGenerator(this.renderer);
+	this.scene.environment=this.pmremGenerator.fromScene(this.environment).texture;
+	this.regions=new RegionManager(this,this.fltRegionWidth,this.fltRegionHeight,this.intWidthSegments,this.intHeightSegments,this.scene);
+	this.light=new THREE.HemisphereLight(0xfff0f0,0x606066);
+	this.light.position.set(1,1,1);
+	this.scene.add(this.light);
+	this.lstLineVectorVisualisation=[];
+	this.train=new THREE.Object3D();
+	this.scene.add(this.train);
+	this.drone=new THREE.Object3D();
+	this.blnDronePositionSet=false;
+	this.drone.position.set(0,this.fltCameraHeight,0);
+	this.scene.add(this.drone);
+	this.camera=new THREE.PerspectiveCamera(50,window.innerWidth/window.innerHeight,0.1,500);
+	//camera view outside
+	this.train.add(this.camera);
+	this.camera.position.x=this.fltCameraX;
+	this.camera.position.y=this.fltCameraHeight;
+	this.camera.position.z=this.fltCameraRear;
+	this.lstStrColors=["rgb(255,255,255)",
+			"rgb(0,0,0)",
+			"rgb(255,100,0)",
+			"rgb(255,255,0)",
+			"rgb(0,255,0)",
+			"rgb(255,0,0)",
+			"rgb(255,50,150)",
+			"rgb(128,0,128)",
+			"rgb(100,50,0)",
+			"rgb(0,0,255)"
+	];
+	this.lstFltColors=[[255/255.,255/255.,255/255.],
+			[0/255.,0/255.,0/255.],
+			[255/255.,100/255.,0/255.],
+			[255/255.,255/255.,0/255.],
+			[0/255.,255/255.,0/255.],
+			[255/255.,0/255.,0/255.],
+			[255/255.,50/255.,150/255.],
+			[128/255.,0/255.,128/255.],
+			[100/255.,50/255.,0/255.],
+			[0/255.,0/255.,255/255.]
+	];
+	this.lstIntColors=[[255,255,255],
+			[0,0,0],
+			[255,100,0],
+			[255,255,0],
+			[0,255,0],
+			[255,0,0],
+			[255,50,150],
+			[128,0,128],
+			[100,50,0],
+			[0,0,255]
+	];
+	this.fltEps=10e-7;
+	this.transformControls=null;
+	if(false==this.chkEditorMode.checked){
+		this.controls=new OrbitControls(this.camera,this.container);
+		this.controls.enableZoom=true;
+		this.controls.enablePan=true;
+		this.controls.update();
+	}else{
+		this.controls=new MapControls(this.camera,this.renderer.domElement);
+		this.controls.enableDamping=true;
+		this.controls.dampingFactor=0.05;
+		this.controls.screenSpacePanning=false;
+		this.controls.minDistance=100;
+		this.controls.maxDistance=500;
+		this.controls.maxPolarAngle=Math.PI/2;
+		this.controls.enabled=false;
+		this.controls.update();
+	}
+	this.vec3position.set(0,0,0);
+	this.main1material=new THREE.MeshPhysicalMaterial({
+		name:"main1material",color:0x000000,metalness:0.6,roughness:0.4,clearcoat:0.05,clearcoatRoughness:0.05,side:THREE.DoubleSide
+	});
+	this.main2material=new THREE.MeshPhysicalMaterial({
+		name:"main2material",color:0xff3c00,metalness:0.6,roughness:0.4,clearcoat:0.05,clearcoatRoughness:0.05,side:THREE.DoubleSide
+	});
+	this.main3material=new THREE.MeshPhysicalMaterial({
+		name:"main3material",color:0xff4b00,metalness:0.6,roughness:0.4,clearcoat:0.05,clearcoatRoughness:0.05,side:THREE.DoubleSide
+	});
+	this.trailerMain1material=new THREE.MeshPhysicalMaterial({
+		name:"trailerMain1material",color:0x000000,metalness:0.6,roughness:0.4,clearcoat:0.05,clearcoatRoughness:0.05,side:THREE.DoubleSide
+	});
+	this.trailerMain2material=new THREE.MeshPhysicalMaterial({
+		name:"trailerMain2material",color:0xff3c00,metalness:0.6,roughness:0.4,clearcoat:0.05,clearcoatRoughness:0.05,side:THREE.DoubleSide
+	});
+	this.metalMaterial=new THREE.MeshPhysicalMaterial({
+		name:"metalMaterial",color:0xa4a4a4,metalness:0.6,roughness:0.4,clearcoat:0.05,clearcoatRoughness:0.05,side:THREE.DoubleSide
+	});
+	this.darkMetalMaterial=new THREE.MeshPhysicalMaterial({
+		name:"darkMetalMaterial",color:0x000000,metalness:0.6,roughness:0.4,clearcoat:0.05,clearcoatRoughness:0.05,side:THREE.DoubleSide
+	});
+	this.glassMaterial=new THREE.MeshPhysicalMaterial({
+		name:"glassMaterial",color:0xffffff,metalness:0,roughness:0.1,transmission:0.9,transparent:true
+	});
+	this.darkGlassMaterial=new THREE.MeshPhysicalMaterial({
+		name:"darkGlassMaterial",color:0x000000,metalness:0,roughness:0.1,transmission:0.5,transparent:true
+	});
+	this.plastic0material=new THREE.MeshStandardMaterial({
+		name:"plastic0material",color:0xffffff,metalness:0.0,roughness:0.5,transparent:false,side:THREE.DoubleSide
+	});
+	this.plastic1material=new THREE.MeshStandardMaterial({
+		name:"plastic1material",color:0x000000,metalness:0.0,roughness:0.5,transparent:false,side:THREE.DoubleSide
+	});
+	this.plastic2material=new THREE.MeshStandardMaterial({
+		name:"plastic2material",color:0xff3c00,metalness:0.0,roughness:0.5,transparent:false,side:THREE.DoubleSide
+	});
+	this.interior1material=new THREE.MeshStandardMaterial({
+		name:"interior1material",color:0x000000,metalness:0.0,roughness:0.5,transparent:false,side:THREE.DoubleSide
+	});
+	this.interior2material=new THREE.MeshStandardMaterial({
+		name:"interior2material",color:0xff3c00,metalness:0.0,roughness:0.5,transparent:false,side:THREE.DoubleSide
+	});
+	this.textileMaterial=new THREE.MeshStandardMaterial({
+		name:"textileMaterial",color:0x151515,metalness:0.0,roughness:0.5,transparent:false,side:THREE.DoubleSide
+	});
+	this.furnitureMaterial=new THREE.MeshStandardMaterial({
+		name:"furnitureMaterial",color:0x020202,metalness:0.0,roughness:0.5,transparent:false,side:THREE.DoubleSide
+	});
+	this.frontBoardMaterial=new THREE.MeshStandardMaterial({
+		name:"frontBoardMaterial",color:0x070707,metalness:0.0,roughness:0.5,transparent:false,side:THREE.DoubleSide
+	});
+	this.carpetMaterial=new THREE.MeshStandardMaterial({
+		name:"carpetMaterial",color:0x303030,metalness:0.0,roughness:0.5,transparent:false,side:THREE.DoubleSide
+	});
+	this.main1colorInput=document.getElementById("main1color");
+	this.main1colorInput.addEventListener("input",function(){
+		var that=window.mhd;
+		that.main1material.color.set(this.value);
+	});
+	this.main2colorInput=document.getElementById("main2color");
+	this.main2colorInput.addEventListener("input",function(){
+		var that=window.mhd;
+		that.main2material.color.set(this.value);
+	});
+	this.main3colorInput=document.getElementById("main3color");
+	this.main3colorInput.addEventListener("input",function(){
+		var that=window.mhd;
+		that.main3material.color.set(this.value);
+	});
+	this.trailerMain1colorInput=document.getElementById("trailerMain1color");
+	this.trailerMain1colorInput.addEventListener("input",function(){
+		var that=window.mhd;
+		that.trailerMain1material.color.set(this.value);
+	});
+	this.trailerMain2colorInput=document.getElementById("trailerMain2color");
+	this.trailerMain2colorInput.addEventListener("input",function(){
+		var that=window.mhd;
+		that.trailerMain2material.color.set(this.value);
+	});
+	this.metalColorInput=document.getElementById("metalColor");
+	this.metalColorInput.addEventListener("input",function(){
+		var that=window.mhd;
+		that.metalMaterial.color.set(this.value);
+	});
+	this.darkMetalColorInput=document.getElementById("darkMetalColor");
+	this.darkMetalColorInput.addEventListener("input",function(){
+		var that=window.mhd;
+		that.darkMetalMaterial.color.set(this.value);
+	});
+	this.glassColorInput=document.getElementById("glassColor");
+	this.glassColorInput.addEventListener("input",function(){
+		var that=window.mhd;
+		that.glassMaterial.color.set(this.value);
+	});
+	this.darkGlassColorInput=document.getElementById("darkGlassColor");
+	this.darkGlassColorInput.addEventListener("input",function(){
+		var that=window.mhd;
+		that.darkGlassMaterial.color.set(this.value);
+	});
+	this.plastic0colorInput=document.getElementById("plastic0color");
+	this.plastic0colorInput.addEventListener("input",function(){
+		var that=window.mhd;
+		that.plastic0material.color.set(this.value);
+	});
+	this.plastic1colorInput=document.getElementById("plastic1color");
+	this.plastic1colorInput.addEventListener("input",function(){
+		var that=window.mhd;
+		that.plastic1material.color.set(this.value);
+	});
+	this.plastic2colorInput=document.getElementById("plastic2color");
+	this.plastic2colorInput.addEventListener("input",function(){
+		var that=window.mhd;
+		that.plastic2material.color.set(this.value);
+	});
+	this.interior1colorInput=document.getElementById("interior1color");
+	this.interior1colorInput.addEventListener("input",function(){
+		var that=window.mhd;
+		that.interior1material.color.set(this.value);
+	});
+	this.interior2colorInput=document.getElementById("interior2color");
+	this.interior2colorInput.addEventListener("input",function(){
+		var that=window.mhd;
+		that.interior2material.color.set(this.value);
+	});
+	this.textileColorInput=document.getElementById("textileColor");
+	this.textileColorInput.addEventListener("input",function(){
+		var that=window.mhd;
+		that.textileMaterial.color.set(this.value);
+	});
+	this.furnitureColorInput=document.getElementById("furnitureColor");
+	this.furnitureColorInput.addEventListener("input",function(){
+		var that=window.mhd;
+		that.furnitureMaterial.color.set(this.value);
+	});
+	this.frontBoardColorInput=document.getElementById("frontBoardColor");
+	this.frontBoardColorInput.addEventListener("input",function(){
+		var that=window.mhd;
+		that.frontBoardMaterial.color.set(this.value);
+	});
+	this.carpetColorInput=document.getElementById("carpetColor");
+	this.carpetColorInput.addEventListener("input",function(){
+		var that=window.mhd;
+		that.carpetMaterial.color.set(this.value);
+	});
+	var dracoLoader=new DRACOLoader();
+	dracoLoader.setDecoderPath("../three.js-master/examples/js/libs/draco/gltf/");
+	this.carLoader=new GLTFLoader();
+	this.carLoader.setDRACOLoader(dracoLoader);
+	this.renderer.domElement.addEventListener("wheel",this.onMouseWheel);
+	this.renderer.domElement.addEventListener("pointerdown",this.onPointerDown);
+	this.renderer.domElement.addEventListener("pointermove",this.onPointerMove);
+	this.renderer.domElement.addEventListener("pointerup",this.onPointerUp);
+	this.blnCameraLookat=false;
+	window.addEventListener("keydown",this.onKeyDown);
+	window.addEventListener("keyup",this.onKeyUp);
+	window.addEventListener("resize",this.onWindowResize);
+	window.addEventListener("gamepadconnected",this.onGamepadConnected);
+	window.addEventListener("gamepaddisconnected",this.onGamepadDisconnected);
+	this.gui=new GUI();
+	this.mainGuiFolder=this.gui.addFolder("main");
+	this.mainGuiFolder.add(this,"saveMap");
+	this.mainGuiFolder.add(this,"loadMap");
+	this.mainGuiFolder.add(this,"loadModelObjects");
+	this.mainGuiFolder.add(this,"resetCarOnSurface");
+	this.mainGuiFolder.add(this.controls,"screenSpacePanning");
+	this.objectsGuiFolder=this.gui.addFolder("Objects");
+	this.objectsGuiFolder.add(this,"addRoadInPoint");
+	this.objectsGuiFolder.add(this,"blnCameraLookat");
+	this.objectsGuiFolder.add(this,"deleteSelectedRoad");
+	this.mainGuiFolder.add(this,"exportCar");
+	this.mainGuiFolder.add(this,"furtherOptions");
+	this.mainGuiFolder.add(this,"exportVisibleScene");
+	this.gridPosition=new THREE.Vector3();
+	this.vec2mouse=new THREE.Vector2();
+	this.vec3forward=new THREE.Vector3();
+	this.vec3right=new THREE.Vector3();
+	this.vec3lookat=new THREE.Vector3();
+	this.vec3up=new THREE.Vector3();
+	this.vec2mousePosition=new THREE.Vector2();
+	this.fltMouseSpeed=Math.PI/4.
+	this.strAxis="x";this.fltScale=1.0;
+	this.vec2mouseDiff=new THREE.Vector2();
+	this.vec2prevMouse=new THREE.Vector2();
+	this.vec2prevMouse.x=null;
+	this.vec2prevMouse.y=null;
+	this.blnMouseDown=false;
+	this.blnMouseBlocked=false;
+	this.chkKeyboardOff=null;
+	this.chkComputerKeyboardOff=null;
+	this.chkMouseOff=null;
+	this.blnShiftPressed=false;
+	this.blnControlPressed=false;
+	this.blnAltPressed=false;
+	this.blnPause=false;
+	this.blnLMB=false;
+	this.blnRMB=false;
+	this.blnMMB=false;
+	this.blnComputeUpVector=false;
+	this.fltCameraRotationX=0;this.fltCameraRotationY=0;this.fltCameraRotationZ=0;;
+	this.vec3tangent=new THREE.Vector3();
+	this.vec3gridTangent=new THREE.Vector3();
+	this.vec3lookAt=new THREE.Vector3();
+	this.fltVelocity=0;
+	this.fltCurveT=0;
+	this.fltPrevTime=performance.now();
+};
+MatrixHardDrive.prototype.btnHideInfoClicked=function(){
+	var divInfo=document.getElementById("info");
+	divInfo.style.display="none";
+};
+MatrixHardDrive.prototype.btnShowComputerScreenPressed=function(){
+	var divComputer=document.getElementById("divComputer");
+	var divTextScreenContent=document.getElementById("divTextScreenContent");
+	var divScreenCanvasContent=document.getElementById("divScreenCanvasContent");
+	var divTheNetspacesLite=document.getElementById("divTheNetspacesLite");
+	if("none"==divComputer.style.display){
+		divComputer.style.display="";
+		divTextScreenContent.style.display="";
+		divScreenCanvasContent.style.display="none";
+		divTheNetspacesLite.style.display="none";
+	}else{
+		divComputer.style.display="none";
+		divTextScreenContent.style.display="none";
+		divScreenCanvasContent.style.display="none";
+		divTheNetspacesLite.style.display="none";
+	}
+};
+MatrixHardDrive.prototype.divComputer_btnShowTextScreenContentPressed=function(){
+	var divTextScreenContent=document.getElementById("divTextScreenContent");
+	if("none"==divTextScreenContent.style.display){
+		divTextScreenContent.style.display="";
+	}else{
+		divTextScreenContent.style.display="none";
+	}
+};
+MatrixHardDrive.prototype.divComputer_btnShowScreenCanvasContentPressed=function(){
+	var divScreenCanvasContent=document.getElementById("divScreenCanvasContent");
+	if("none"==divScreenCanvasContent.style.display){
+		divScreenCanvasContent.style.display="";
+	}else{
+		divScreenCanvasContent.style.display="none";
+	}
+};
+MatrixHardDrive.prototype.divComputer_btnShowTheNetspacesLitePressed=function(){
+	var divTheNetspacesLite=document.getElementById("divTheNetspacesLite");
+	if("none"==divTheNetspacesLite.style.display){
+		divTheNetspacesLite.style.display="";
+	}else{
+		divTheNetspacesLite.style.display="none";
+	}
+};
+MatrixHardDrive.prototype.createTexture=function(imageData,textureWidth,textureHeight){
+	var textureCanvas=document.createElement("canvas");
+	textureCanvas.width=textureWidth;
+	textureCanvas.height=textureHeight;
+	var textureContext=textureCanvas.getContext("2d");
+	var index=0;
+	var textureImage=textureContext.createImageData(textureWidth,textureHeight);
+	for (var j=0;j<textureHeight;j+=1){
+		for(var i=0;i<textureWidth;i+=1){
+			index=(j*textureWidth+i)*4;
+			textureImage.data[index+0]=imageData.data[index+0];
+			textureImage.data[index+1]=imageData.data[index+1];
+			textureImage.data[index+2]=imageData.data[index+2];
+			textureImage.data[index+3]=imageData.data[index+3];
+		}
+	}
+	textureContext.putImageData(textureImage,0,0);
+	return [textureCanvas,textureImage];
+};
+MatrixHardDrive.prototype.putpixelToImageData=function(textureImage,intX,intY,intTextureWidth,intTextureHeight,intR,intG,intB){
+	var index=(intY*intTextureWidth+intX)*4;
+	textureImage.data[index+0]=intR;
+	textureImage.data[index+1]=intG;
+	textureImage.data[index+2]=intB;
+	textureImage.data[index+3]=255;
+};
+MatrixHardDrive.prototype.createShadowTexture=function(fltWidthMultiplier,fltHeightMultiplier){
+	var textureCanvas=document.createElement("canvas");
+	var intShadowMargin=20;
+	textureCanvas.id="textureCanvas";
+	var intTextureWidth=100*fltWidthMultiplier;
+	var intTextureHeight=100*fltHeightMultiplier;
+	textureCanvas.width=intTextureWidth;
+	textureCanvas.height=intTextureHeight;
+	var textureContext=textureCanvas.getContext("2d");
+	var textureImage=textureContext.createImageData(intTextureWidth,intTextureHeight);
+	textureContext.beginPath();
+	textureContext.fillStyle="white";
+	textureContext.fillRect(0,0,intTextureWidth,intTextureHeight);
+	textureContext.fill();
+	textureContext.beginPath();
+	textureContext.fillStyle="grey";
+	textureContext.fillRect(intShadowMargin,intShadowMargin,intTextureWidth-2*intShadowMargin,intTextureHeight-2*intShadowMargin);
+	textureContext.fill();
+	var newTexture=new THREE.CanvasTexture(textureCanvas);
+	return newTexture;
+};
+MatrixHardDrive.prototype.createShadow=function(fltWidthMultiplier,fltHeightMultiplier){
+	var texture=this.createShadowTexture(fltWidthMultiplier,fltHeightMultiplier);
+	var shadow=new THREE.Mesh(
+		new THREE.PlaneGeometry(fltWidthMultiplier*3,fltHeightMultiplier*3),
+		new THREE.MeshBasicMaterial({
+			map:texture,blending:THREE.MultiplyBlending,toneMapped:false,transparent:true
+		})
+	);
+	shadow.rotation.x=-Math.PI/2;
+	//shadow.position.y+=0.01;
+	shadow.position.y+=0.1;
+	shadow.renderOrder=2;
+	return shadow;
+};
+MatrixHardDrive.prototype.createBeerResidueTexture=function(){
+	var textureCanvas=document.createElement("canvas");
+	textureCanvas.id="textureCanvas";
+	var intTextureWidth=300;
+	var intTextureHeight=150;
+	textureCanvas.width=intTextureWidth;
+	textureCanvas.height=intTextureHeight;
+	var textureContext=textureCanvas.getContext("2d");
+	var textureImage=textureContext.createImageData(intTextureWidth,intTextureHeight);
+	textureContext.beginPath();
+	textureContext.fillStyle="white";
+	textureContext.fillRect(0,0,intTextureWidth,intTextureHeight);
+	textureContext.fill();
+	var intY0=50;
+	var intY1=75;
+	var intY2=110;
+	textureContext.beginPath();
+	textureContext.fillStyle="black";
+	textureContext.fillRect(0,intY0,intTextureWidth,20);
+	textureContext.fillRect(0,intY1,intTextureWidth,20);
+	textureContext.fillRect(0,intY2,intTextureWidth,20);
+	textureContext.fill();
+	textureContext.beginPath();
+	textureContext.fillStyle="white";
+	var intX,intY,intRadius;
+	for(var ii=0;ii<200;ii++){
+		intX=Math.round(Math.random()*intTextureWidth);
+		intY=Math.round(Math.random()*intTextureHeight);
+		intRadius=1+Math.round(Math.random()*2);
+		textureContext.arc(intX,intY,intRadius,0,2*Math.PI);
+	}
+	textureContext.fill();
+	textureContext.beginPath();
+	textureContext.fillStyle="black";
+	textureContext.fillRect(0,intY0+10-2.5,intTextureWidth,5);
+	textureContext.fillRect(0,intY1+10-2.5,intTextureWidth,5);
+	textureContext.fillRect(0,intY2+10-2.5,intTextureWidth,5);
+	textureContext.fill();
+	var imageData=textureContext.getImageData(0,0,intTextureWidth,intTextureHeight);
+	var lstReturn=this.createSharpAlphaMap(imageData,intTextureWidth,intTextureHeight);
+	var newTexture=new THREE.CanvasTexture(lstReturn[0]);
+	return newTexture;
+};
+MatrixHardDrive.prototype.createSharpAlphaMap=function(imageData,textureWidth,textureHeight){
+	var textureCanvas=document.createElement("canvas");
+	textureCanvas.width=textureWidth;
+	textureCanvas.height=textureHeight;
+	var textureContext=textureCanvas.getContext("2d");
+	var index=0;
+	var textureImage=textureContext.createImageData(textureWidth,textureHeight);
+	for (var j=0;j<textureHeight;j+=1){
+		for(var i=0;i<textureWidth;i+=1){
+			index=(j*textureWidth+i)*4;
+			if(127>imageData.data[index+0]&&127>imageData.data[index+1]&&127>imageData.data[index+2]){
+				textureImage.data[index+0]=255;
+				textureImage.data[index+1]=255;
+				textureImage.data[index+2]=255;
+				textureImage.data[index+3]=255;
+			}else{
+				textureImage.data[index+0]=0;
+				textureImage.data[index+1]=0;
+				textureImage.data[index+2]=0;
+				textureImage.data[index+3]=0;
+			}
+		}
+	}
+	textureContext.putImageData(textureImage,0,0);
+	return [textureCanvas,textureImage];
+};
+MatrixHardDrive.prototype.generateBeerResidue=function(){
+	var that=window.mhd;
+	var beerResidue=that.createBeerResidueTexture();
+	that.beerResidueMesh.material=new THREE.MeshBasicMaterial({
+		color:"grey",
+		side:THREE.DoubleSide,
+		depthFunc: THREE.AlwaysDepth,
+		alphaMap: beerResidue,
+		transparent: true,
+		opacity: 0.9
+	});
+};
+MatrixHardDrive.prototype.createTextTextureMaterial=function(strText,theForeColor,theBackColor){
+	var intMarginSize=2;
+	var textureCanvas=document.createElement("canvas");
+	var textureContext=textureCanvas.getContext("2d");
+	var intWidth=30;
+	var intHeight=10+2*intMarginSize;
+	textureContext.canvas.width=intWidth;
+	textureContext.canvas.height=intHeight;
+	textureContext.fillStyle=theBackColor;
+	textureContext.fillRect(0,0,intWidth,intHeight);
+	textureContext.fillStyle=theForeColor;
+	textureContext.fillText(strText,0,10);
+	var texture=new THREE.CanvasTexture(textureCanvas);
+	texture.minFilter=THREE.LinearFilter;
+	texture.wrapS=THREE.ClampToEdgeWrapping;
+	texture.wrapT=THREE.ClampToEdgeWrapping;
+	return new THREE.MeshBasicMaterial({
+		map:texture,
+		side:THREE.DoubleSide
+	});
+};
+
+MatrixHardDrive.prototype.doubleDeckerName=function(strText){
+	for(var ii=0;ii<10;ii++){
+		if(""+ii==strText)return true;
+	}
+	switch(strText){
+		case "Equals": return true;break;
+		case "Minus": return true;break;
+		case "39": return true;break;
+		case "44": return true;break;
+		case "46": return true;break;
+		case "47": return true;break;
+		case "59": return true;break;
+		case "91": return true;break;
+		case "92": return true;break;
+		case "93": return true;break;
+		case "96": return true;break;
+		case "F11": return true;break;
+		case "F12": return true;break;
+		case "PrtSc": return true;break;
+		case "Pause": return true;break;
+	};
+	return false;
+};
+MatrixHardDrive.prototype.keyNamesExceptions=function(strText,intBorderX,intBorderY){
+	if(true==this.doubleDeckerName(strText)){
+		switch(strText){
+			case "1":strText=["   ! ","   1 "];break;
+			case "2":strText=["   @ ","   2 "];break;
+			case "3":strText=["   # ","   3 "];break;
+			case "4":strText=["   $ ","   4 "];break;
+			case "5":strText=["   % ","   5 "];break;
+			case "6":strText=["   ^ ","   6 "];break;
+			case "7":strText=["   & ","   7 "];break;
+			case "8":strText=["   * ","   8 "];break;
+			case "9":strText=["   ( ","   9 "];break;
+			case "0":strText=["   ) ","   0 "];break;
+			case "Equals":strText=["   + ","   = "];break;
+			case "Minus":strText=["   _ ","   - "];break;
+			case "39":strText=["   "+String.fromCharCode(34)+" ","   ' "];break;
+			case "44":strText=["   < ","   , "];break;
+			case "46":strText=["   > ","   . "];break;
+			case "47":strText=["   ? ","   / "];break;
+			case "59":strText=["   : ", "   ; "];break;
+			case "91":strText=["   { ","   [ "];break;
+			case "92":strText=["   | ", "   \ "];break;
+			case "93":strText=["   } ","   ] "];break;
+			case "96":strText=["   ~ ", "   ` "];break;
+			case "F11":strText=["  F11", "  NumLk"];break;
+			case "F12":strText=["  F12", "  ScrLk"];break;
+			case "PrtSc":strText=["   PrtSc", " SysRq"];break;
+			case "Pause":strText=[" Pause", " Break"];break;
+		};
+		return [strText,intBorderX,intBorderY-10];
+	}else{
+		switch(strText){
+			case "Space": strText=" ";intBorderX=5*30;break;
+			case "ArrowUp": strText=String.fromCharCode(11014);break;
+			case "ArrowRight": strText=String.fromCharCode(10145);break;
+			case "ArrowDown": strText=String.fromCharCode(11015);break;
+			case "ArrowLeft": strText=String.fromCharCode(11013);break;
+		}
+		if(strText.length>1){
+			intBorderY-=10;
+			if(strText.length<4)
+				strText="  "+strText;
+		}else{
+			strText="  "+strText;
+		}
+		return [[" "+strText+" "],intBorderX,intBorderY];
+	}
+};
+MatrixHardDrive.prototype.createKeyTextureMaterial=function(strText,theForeColor,theBackColor,intBorderX,intBorderY,blnAdditionalInverseX){
+	var strName=""+strText;
+	var lstReturn;
+	lstReturn=this.keyNamesExceptions(strText,intBorderX,intBorderY);
+	strText=lstReturn[0];
+	intBorderX=lstReturn[1];
+	intBorderY=lstReturn[2];
+	var intMarginSize=2;
+	var textureCanvas=document.createElement("canvas");
+	var textureContext=textureCanvas.getContext('2d');
+	var intWidth=4;
+	var intHeight=10+2*intMarginSize;
+	textureContext.canvas.width=intBorderX+intWidth;
+	textureContext.canvas.height=intBorderY+intHeight;
+
+	textureContext.fillStyle=theBackColor;
+	textureContext.fillRect(0,0,intWidth,intHeight);
+	textureContext.fillStyle=theForeColor;
+	if("OS"==strName){
+		var intX=10,intY=25;
+		textureContext.beginPath();
+		textureContext.moveTo(intX-10+7,intY+5-5);
+		textureContext.lineTo(intX+10+7,intY+10-5);
+		textureContext.lineTo(intX+10+7,intY-10-5);
+		textureContext.lineTo(intX-10+7,intY-5-5);
+		textureContext.lineTo(intX-10+7,intY+5-5);
+		textureContext.fill();
+		textureContext.beginPath();
+		textureContext.fillStyle="rgba("+0+","+0+","+0+","+255+")";
+		textureContext.moveTo(intX-1+7,intY-10-5);
+		textureContext.lineTo(intX+1+7,intY-10-5);
+		textureContext.lineTo(intX+1+7,intY+10-5);
+		textureContext.lineTo(intX-1+7,intY+10-5);
+		textureContext.lineTo(intX-1+7,intY-10-5);
+		textureContext.moveTo(intX-10+7,intY-1-5);
+		textureContext.lineTo(intX+10+7,intY-1-5);
+		textureContext.lineTo(intX+10+7,intY+1-5);
+		textureContext.lineTo(intX-10+7,intY+1-5);
+		textureContext.lineTo(intX-10+7,intY-1-5);
+		textureContext.fill();
+	}else{
+		if(1==strText.length)
+			textureContext.fillText(strText[0],0,20);
+		else{
+			textureContext.fillText(strText[0],0,20);
+			textureContext.fillText(strText[1],0,30);
+		}
+	}
+	var intTextureWidth=textureCanvas.width;
+	var intTextureHeight=textureCanvas.height;
+	var imageData=textureContext.getImageData(0,0,intTextureWidth,intTextureHeight);
+	var textureImage=textureContext.createImageData(intTextureWidth,intTextureHeight);
+	var index0=0,index1=0;
+	for (var j=0;j<intTextureHeight;j++){
+		for(var i=0;i<intTextureWidth;i++){
+			index0=(j*intTextureWidth+i)*4;
+			index1=((intTextureHeight-j)*intTextureWidth+i)*4;
+			textureImage.data[index1+0]=imageData.data[index0+0];
+			textureImage.data[index1+1]=imageData.data[index0+1];
+			textureImage.data[index1+2]=imageData.data[index0+2];
+			textureImage.data[index1+3]=imageData.data[index0+3];
+		}
+	}
+	if(true==blnAdditionalInverseX){
+		for (var j=0;j<intTextureHeight;j++){
+			for(var i=0;i<intTextureWidth;i++){
+				index0=(j*intTextureWidth+i)*4;
+				index1=(j*intTextureWidth+(intTextureWidth-i))*4;
+				textureImage.data[index1+0]=imageData.data[index0+0];
+				textureImage.data[index1+1]=imageData.data[index0+1];
+				textureImage.data[index1+2]=imageData.data[index0+2];
+				textureImage.data[index1+3]=imageData.data[index0+3];
+			}
+		}
+
+	}
+	textureContext.putImageData(textureImage,0,0);
+	var texture=new THREE.CanvasTexture(textureCanvas);
+	texture.minFilter = THREE.LinearFilter;
+	texture.wrapS = THREE.RepeatWrapping;
+	texture.wrapT = THREE.RepeatWrapping;
+	return new THREE.MeshPhysicalMaterial({
+		metalness:0.6,roughness:0.4,clearcoat:0.05,clearcoatRoughness:0.05,
+		name:"Key"+strName,
+		map:texture,
+		side:THREE.DoubleSide
+	});
+};
+MatrixHardDrive.prototype.createTextTextureMaterialWidthHeight=function(strText,theForeColor,theBackColor,intWidth,intHeight){
+	var textureCanvas=document.createElement("canvas");
+	var textureContext=textureCanvas.getContext('2d');
+	textureContext.canvas.width=intWidth;
+	textureContext.canvas.height=intHeight;
+	textureContext.fillStyle=theBackColor;
+	textureContext.fillRect(0,0,intWidth,intHeight);
+	textureContext.fillStyle=theForeColor;
+	textureContext.fillText(strText,0,10);
+	var texture=new THREE.CanvasTexture(textureCanvas);
+	texture.minFilter=THREE.LinearFilter;
+	texture.wrapS=THREE.ClampToEdgeWrapping;
+	texture.wrapT=THREE.ClampToEdgeWrapping;
+	return new THREE.MeshBasicMaterial({
+		map:texture,
+		side:THREE.DoubleSide
+	});
+};
+MatrixHardDrive.prototype.materialTraverseFunction=function(object){
+	var that=window.mhd;
+	if(undefined!=object.material){
+		if("Metal"==object.material.name.substring(0,5))
+			object.material=that.metalMaterial;
+		if(-1!=object.material.name.indexOf("DarkMetal")){
+			object.material=that.darkMetalMaterial;
+		}
+		if(-1!=object.material.name.indexOf("WindowGlass")||"Glass"==object.material.name.substring(0,5))
+			object.material=that.glassMaterial;
+		if(-1!=object.material.name.indexOf("DarkGlass"))
+			object.material=that.darkGlassMaterial;
+		if("Main1"==object.material.name.substring(0,5)||"main1"==object.material.name.substring(0,5))
+			object.material=that.main1material;
+		if("Main2"==object.material.name.substring(0,5)||"main2"==object.material.name.substring(0,5))
+			object.material=that.main2material;
+		if("Main3"==object.material.name.substring(0,5)||"main3"==object.material.name.substring(0,5))
+			object.material=that.main3material;
+		if(-1!=object.material.name.indexOf("TrailerMain1"))
+			object.material=that.trailerMain1material;
+		if(-1!=object.material.name.indexOf("TrailerMain2"))
+			object.material=that.trailerMain2material;
+		if(-1!=object.material.name.indexOf("Plastic0"))
+			object.material=that.plastic0material;
+		if(-1!=object.material.name.indexOf("Plastic1"))
+			object.material=that.plastic1material;
+		if(-1!=object.material.name.indexOf("Plastic2"))
+			object.material=that.plastic2material;
+		if(-1!=object.material.name.indexOf("Interior1"))
+			object.material=that.interior1material;
+		if(-1!=object.material.name.indexOf("Interior2"))
+			object.material=that.interior2material;
+		if(-1!=object.material.name.indexOf("Textile"))
+			object.material=that.textileMaterial;
+		if(-1!=object.material.name.indexOf("Furniture"))
+			object.material=that.furnitureMaterial;
+		if(-1!=object.material.name.indexOf("FrontBoard"))
+			object.material=that.frontBoardMaterial;
+		if(-1!=object.material.name.indexOf("Carpet"))
+			object.material=that.carpetMaterial;
+		if("Beer Residue"==object.material.name){
+			that.beerResidueMesh=object;
+			that.generateBeerResidue();
+		}
+		if("Beer Liquid"==object.material.name){
+			object.material=new THREE.MeshPhysicalMaterial({
+			color:0xbf7e0c,
+			transparent:false
+			});
+		}
+		if("Foam"==object.name){
+			object.material=new THREE.MeshPhysicalMaterial({
+			color:"grey",
+			transparent:false
+			});
+		}
+		if("TouchscreenBlack"==object.material.name){
+			object.material=that.createTextTextureMaterialWidthHeight("user@computer$","grey","black",256,144);
+			that.lstComputerScreens.push(object);
+
+		}
+		if("KeyboardCase"==object.name.substring(0,12)||"Touchpad"==object.name.substring(0,8))
+			object.material=that.createKeyTextureMaterial(" ","white","black",30,30,true);
+		if("key"==object.name.substring(0,3)){
+			var strKey=object.name.substring(3);
+			object.material=that.createKeyTextureMaterial(strKey,"white","black",30,30,false);
+		}
+		if("Key"==object.name.substring(0,3)){
+			var strKey=object.name.substring(3);
+			object.material=that.createKeyTextureMaterial(strKey,"white","black",30,30,false);
+		}
+	}
+};
+MatrixHardDrive.prototype.insertDuplicateAndGenerateTraverseFunction_car=function(object){
+	var int91,int93,strTemplateName,templateObject;
+	var that=window.mhd;
+	var blnTemplateObject=false;
+	if(undefined==object.userData)return;
+	var strName=object.userData.name;
+	if(undefined==strName)return;
+	int91=strName.indexOf("[");
+	int93=strName.indexOf("]");
+	if(-1!=int91&&-1!=int93){
+		strTemplateName=strName.substring(int91+1,int93);
+		templateObject=that.dctTmpTemplateObjects[strTemplateName];
+		if(undefined==templateObject){
+			templateObject=that.cloneAndGenerate(that.carModel.getObjectByName(strTemplateName));
+		}else{
+			templateObject=that.cloneAndGenerate(templateObject);
+		}
+		if(undefined!=templateObject.geometry){
+			templateObject.position.x=0;
+			templateObject.position.y=0;
+			templateObject.position.z=0;
+			templateObject.rotation.x=0;
+			templateObject.rotation.y=0;
+			templateObject.rotation.z=0;
+		}
+		if("key"==strName.substring(0,3)){
+			templateObject.name=strName.substring(0,int91);
+		}else{
+			templateObject.name=strName.substring(0,int91)+strName.substring(int91+1,int93)+strName.substring(int93+1);
+			object.userData.name=strName.substring(0,int91)+"_"+strName.substring(int91+1,int93)+"_"+strName.substring(int93+1);
+		}
+		//two template cloneing convnetions introduced
+		if(undefined!=templateObject.geometry){
+			//mesh
+			object.add(templateObject);
+		}else{
+			//object
+			for(var ii=0;ii<templateObject.children.length;ii++){
+				object.add(that.cloneAndGenerate(templateObject.children[ii]));
+			}
+		}
+	}
+	that.traversingGenereate(object);
+};
+MatrixHardDrive.prototype.insertDuplicateAndGenerateTraverseFunction_trailer=function(object){
+	var that=window.mhd;
+	var intTrailer=that.carModel.lstTrailerModels.length-1;
+	var int91,int93,strTemplateName,templateObject;
+	var blnTemplateObject=false;
+	if(undefined==object.userData)return;
+	var strName=object.userData.name;
+	if(undefined==strName)return;
+	int91=strName.indexOf("[");
+	int93=strName.indexOf("]");
+	if(-1!=int91&&-1!=int93){
+		strTemplateName=strName.substring(int91+1,int93);
+		templateObject=that.dctTmpTemplateObjects[strTemplateName];
+		if(undefined==templateObject){
+			templateObject=that.cloneAndGenerate(that.carModel.lstTrailerModels[intTrailer].getObjectByName(strTemplateName));
+		}else{
+			templateObject=that.cloneAndGenerate(templateObject);
+		}
+		if(undefined!=templateObject.geometry){
+			templateObject.position.x=0;
+			templateObject.position.y=0;
+			templateObject.position.z=0;
+			templateObject.rotation.x=0;
+			templateObject.rotation.y=0;
+			templateObject.rotation.z=0;
+		}
+		if("key"==strName.substring(0,3)){
+			templateObject.name=strName.substring(0,int91);
+		}else{
+			templateObject.name=strName.substring(0,int91)+strName.substring(int91+1,int93)+strName.substring(int93+1);
+			object.userData.name=strName.substring(0,int91)+"_"+strName.substring(int91+1,int93)+"_"+strName.substring(int93+1);
+		}
+		//two templates cloneing convnetions introduced
+		if(undefined!=templateObject.geometry){
+			//mesh
+			object.add(templateObject);
+		}else{
+			//object 
+			for(var ii=0;ii<templateObject.children.length;ii++){
+				object.add(that.cloneAndGenerate(templateObject.children[ii]));
+			}
+		}
+	}
+	that.traversingGenereate(object);
+};
+MatrixHardDrive.prototype.loadComputers=function(){
+	if(undefined!=window.mhd.netspace&&undefined!=window.mhd.netspace.computer)return;
+	if(undefined==this.lstComputerScreens[0]){
+		console.log("undefined==this.lstComputerScreens[0]");
+		return;
+	}
+	window.mhd.netspace=new The_Netspaces(this.renderer.getContext());
+	window.mhd.netspace.computer=new Computer(this.lstComputerScreens[0],[]);//TODO: lstComputers
+	window.mhd.netspace.computer.inits();
+	window.mhd.lstComputers.push(window.mhd.netspace.computer);
+	window.mhd.intActiveComputer=window.mhd.lstComputers.length-1;
+	return window.mhd.computer;
+};
+MatrixHardDrive.prototype.preloadMaterials=function(object){
+	var that=window.mhd;
+	if(undefined!=object.material){
+		if(undefined==that.dctTmpMaterials[object.material.name]){
+			that.dctTmpMaterials[object.material.name]=object.material;
+		}
+	}
+};
+MatrixHardDrive.prototype.preloadDctTmpMaterials=function(intTrailer){
+	/*temporary materials for that model*/
+	var that=window.mhd;
+	that.dctTmpMaterials={};
+	if(undefined==intTrailer||intTrailer<0)
+		that.carModel.traverse(that.preloadMaterials);
+	else
+		that.carModel.lstTrailerModels[intTrailer].traverse(that.preloadMaterials);
+};
+MatrixHardDrive.prototype.generatedObjectsExceptions=function(strName){
+	var that=window.mhd;
+	var geometry=new THREE.BoxGeometry(1,1,1);
+	var material;
+	if(-1!=strName.indexOf("SignRoad")){
+		material=that.createTextTextureMaterial("Road","black","yellow");
+	}
+	if(-1!=strName.indexOf("SignTrain")){
+		material=that.createTextTextureMaterial("Train","black","yellow");
+	}
+	if(-1!=strName.indexOf("SignRegistrationNumber")){
+		material=that.createTextTextureMaterial("车牌号","black","white");
+	}
+	return new THREE.Mesh(geometry,material);	
+};
+MatrixHardDrive.prototype.traversingGenereate=function(object){
+	var that=window.mhd;
+	var strName,int123,int125,strGenerateName,generatedObject,geometry,material;
+	if(undefined==object.userData)return;
+	var strName=object.userData.name;
+	if(undefined==strName)return;
+	int123=strName.indexOf("{");
+	int125=strName.indexOf("}");
+	if(-1!=int123&&-1!=int125){
+		strGenerateName=strName.substring(int123+1,int125);
+		//material will be traversed by name by the material traverse function
+		//generated objects must be only made from predefined by name materials
+		//or materials stored in generatedTemplateMaterials e.x. on the unit 1x1 plane
+		var generatedMaterial=null;
+		if(-1!=strGenerateName.indexOf(";")){
+			var strGeneratedMaterialName;
+			var lstGenerateName=strGenerateName.split(";");
+			strGenerateName=lstGenerateName[0];
+			strGeneratedMaterialName=lstGenerateName[1];
+			generatedMaterial=that.dctTmpMaterials[strGeneratedMaterialName];
+		}	
+		if(null==generatedMaterial)
+			material=new THREE.MeshBasicMaterial({color:0xffffff});
+		else
+			material=generatedMaterial;
+		switch(strGenerateName){
+			case "Cylinder":
+				geometry=new THREE.CylinderGeometry(1,1,1,that.intGeneratedCylindersBase);
+				generatedObject=new THREE.Mesh(geometry,material);	
+				generatedObject.scale.y*=2;//different design convention
+				break;
+			case "Box":
+				if(-1!=object.name.indexOf("Sign")){
+					generatedObject=that.generatedObjectsExceptions(object.name);
+				}else{
+					geometry=new THREE.BoxGeometry(1,1,1);
+					generatedObject=new THREE.Mesh(geometry,material);	
+				}
+				generatedObject.scale.multiplyScalar(2);//different design convention
+				break;
+			case "Plane":
+				geometry=new THREE.PlaneGeometry(1,1,1,1);
+				generatedObject=new THREE.Mesh(geometry,material);	
+				generatedObject.rotation.x=Math.PI/2;//different design convention
+				generatedObject.scale.multiplyScalar(2);//different design convention
+				break;
+			case "Sphere":
+				geometry=new THREE.SphereGeometry(1,that.intGeneratedSpheresWidthSegments,that.intGeneratedSpheresHeihtSegments);
+				generatedObject=new THREE.Mesh(geometry,material);	
+				break;
+		}
+		object.userData.name=strName.substring(0,int123)+"_"+strName.substring(int123+1,int125)+"_"+strName.substring(int125+1);
+		generatedObject.name=strName.substring(0,int123)+strName.substring(int123+1,int125)+strName.substring(int125+1);
+		object.add(generatedObject);
+	}
+};
+MatrixHardDrive.prototype.cloneAndGenerate=function(object){
+	var that=window.mhd;
+	var clonedObject=object.clone();
+	clonedObject.traverse(that.traversingGenereate);
+	return clonedObject;
+};
+MatrixHardDrive.prototype.preloadTemplateObjects=function(object){
+	var that=window.mhd;
+	var int34_0,int34_1;
+	var strName,strTemplateName;
+	if(undefined!=object.userData.name)
+	{
+		strName=object.userData.name;
+		int34_0=strName.indexOf(String.fromCharCode(34));
+		if(-1!=int34_0){
+			int34_1=strName.substring(int34_0+1).indexOf(String.fromCharCode(34));
+			if(-1!=int34_1){
+				int34_1+=(int34_0+1);
+				strTemplateName=strName.substring(int34_0+1,int34_1);
+				if(undefined==that.dctTmpTemplateObjects[strTemplateName]){
+					that.dctTmpTemplateObjects[strTemplateName]=that.cloneAndGenerate(object);
+				}
+			}
+		}
+	}
+};
+MatrixHardDrive.prototype.preloadDctTmpTemplateObjects=function(intTrailer){
+	/*temporary template objects for that model*/
+	var that=window.mhd;
+	that.dctTmpTemplateObjects={};
+	if(undefined==intTrailer||-1==intTrailer)
+		that.carModel.traverse(that.preloadTemplateObjects);
+	else
+		that.carModel.lstTrailerModels[intTrailer].traverse(that.preloadTemplateObjects);
+};
+MatrixHardDrive.prototype.carLoadingFunction=function(gltf){
+	var that=window.mhd;
+	that.carModel=gltf.scene.children[0];
+	that.preloadDctTmpMaterials(-1);
+	that.preloadDctTmpTemplateObjects(-1);
+	var theSubObject;
+	that.carModel.lstAveragingWheels=[];
+	that.carModel.lstTurningWheels=[];
+	that.carModel.traverse(that.insertDuplicateAndGenerateTraverseFunction_car);
+	var theObject=that.carModel.getObjectByName("WheelRaycasters");
+	for(var ii=0;ii<theObject.children.length;ii++){
+		theSubObject=theObject.children[ii];
+		if(-1!=theSubObject.name.indexOf("wheel")){
+			if(-1!=theSubObject.name.indexOf("raycaster")){
+				if(-1!=theSubObject.name.indexOf("fl")){
+					that.carModel.lstAveragingWheels[0]=theSubObject;
+				}
+				if(-1!=theSubObject.name.indexOf("fr")){
+					that.carModel.lstAveragingWheels[1]=theSubObject;
+				}
+				if(-1!=theSubObject.name.indexOf("rl")){
+					that.carModel.lstAveragingWheels[2]=theSubObject;
+				}
+				if(-1!=theSubObject.name.indexOf("rr")){
+					that.carModel.lstAveragingWheels[3]=theSubObject;
+				}
+				
+			}
+			if(-1!=theSubObject.name.indexOf("turning")){
+				if(-1!=theSubObject.name.indexOf("fl")){
+					that.carModel.lstTurningWheels[0]=theSubObject;
+				}
+				if(-1!=theSubObject.name.indexOf("fr")){
+					that.carModel.lstTurningWheels[1]=theSubObject;
+				}
+				if(-1!=theSubObject.name.indexOf("rl")){
+					that.carModel.lstTurningWheels[2]=theSubObject;
+				}
+				if(-1!=theSubObject.name.indexOf("rr")){
+					that.carModel.lstTurningWheels[3]=theSubObject;
+				}
+				
+			}
+		}
+	}
+	var theObject=that.carModel.getObjectByName("WheelGeometries");
+	for(var ii=0;ii<theObject.children.length;ii++){
+		theSubObject=theObject.children[ii];
+		if(-1!=theSubObject.name.indexOf("wheel")){
+			if(-1!=theSubObject.name.indexOf("turning")){
+				if(-1!=theSubObject.name.indexOf("fl")){
+					that.carModel.lstTurningWheels[0]=theSubObject;
+				}
+				if(-1!=theSubObject.name.indexOf("fr")){
+					that.carModel.lstTurningWheels[1]=theSubObject;
+				}
+				if(-1!=theSubObject.name.indexOf("rl")){
+					that.carModel.lstTurningWheels[2]=theSubObject;
+				}
+				if(-1!=theSubObject.name.indexOf("rr")){
+					that.carModel.lstTurningWheels[3]=theSubObject;
+				}
+			}
+		}
+	}
+	that.carModel.body=that.carModel.getObjectByName("body");
+	that.carModel.body.theQuaternion=new THREE.Quaternion();
+	that.carModel.wheels=that.carModel.getObjectByName("WheelGeometries");
+	that.carModel.wheels.frontAngle=0;
+	var mirrorGlassObjectL=that.carModel.getObjectByName(String.fromCharCode(34)+"MirrorGlass"+String.fromCharCode(34)+"L");
+	mirrorGlassObjectL.visible=false;
+	that.carModel.mirrorGlassL=null;
+	var mirrorGlassObjectR=that.carModel.getObjectByName("MirrorGlassR");
+	mirrorGlassObjectR.visible=false;
+	that.carModel.mirrorGlassR=null;
+	if(null!=that.carModel.mirrorGlassL)
+		that.carModel.add(that.carModel.mirrorGlassL);
+	if(null!=that.carModel.mirrorGlassR)
+		that.carModel.add(that.carModel.mirrorGlassR);
+	that.renderer.shadowMap.autoUpdate=true;
+	//that.carModel.fltWheelRadius=0.35;
+	that.carModel.fltWheelRadius=0.5;//trucks
+	that.carModel.fltMaxSpringLength=that.carModel.fltWheelRadius;
+	for(var ii=0;ii<that.carModel.wheels.children.length;ii++){
+		that.lstWheels.push(that.carModel.wheels.children[ii]);
+	}
+	that.carModel.lstWheels=[];
+	for(var ii=0;ii<that.carModel.wheels.children.length;ii++)
+		that.carModel.lstWheels.push(that.carModel.wheels.children[ii]);
+	that.carModel.lstVec3raycastersInitialPositions=[];
+	for(var ii=0;ii<that.carModel.lstAveragingWheels.length;ii++){
+		that.carModel.lstAveragingWheels[ii].raycaster=new THREE.Raycaster();
+		that.carModel.lstAveragingWheels[ii].raycaster.ray.direction.set(0,-1,0);
+		that.carModel.lstAveragingWheels[ii].vec3initialPosition=that.carModel.lstAveragingWheels[ii].position.clone();
+		that.carModel.lstVec3raycastersInitialPositions[ii]=that.carModel.lstAveragingWheels[ii].position.clone();
+	}
+	that.carModel.initialVec3diff=that.computeWheelsDiff();
+	that.carModel.initialVec3wheelsCenter=that.computeWheelsCenter();
+	that.carModel.getObjectByName("body").add(that.createShadow(1,3));
+	that.train.add(that.carModel);
+	that.carModel.scale.x*=0.1;
+	that.carModel.scale.y*=0.1;
+	that.carModel.scale.z*=0.1;
+	that.carModel.position.x=0;
+	that.carModel.position.y=0;
+	that.carModel.position.z=0;
+	if(null!=that.carModel.mirrorGlassL){
+		that.carModel.mirrorGlassL.position.y=0.0;
+		that.carModel.mirrorGlassL.position.z=1.63;
+	}
+	if(null!=that.carModel.mirrorGlassR){
+		that.carModel.mirrorGlassR.position.y=0.0;
+		that.carModel.mirrorGlassR.position.z=1.63;
+	}
+	that.carModel.steeringWheel=that.carModel.getObjectByName("SteeringWheel");
+	that.carModel.traverse(that.materialTraverseFunction);
+	that.loadComputers();
+	if(that.intTrailersToLoad>0){
+		that.carModel.lstTrailerModels=[];
+		that.carLoader.load("./models/Cadealack_RoadTrain_trailer.glb",that.trailerLoadingFunction);
+	}
+};
+MatrixHardDrive.prototype.trailerLoadingFunction=function(gltf){
+	var that=window.mhd;
+	that.intTrailersToLoad--;
+	that.carModel.lstTrailerModels.push(gltf.scene.children[0]);
+	var intTrailer=that.carModel.lstTrailerModels.length-1;
+	that.preloadDctTmpMaterials(intTrailer);
+	that.preloadDctTmpTemplateObjects(intTrailer);
+	that.carModel.lstTrailerModels[intTrailer].traverse(that.insertDuplicateAndGenerateTraverseFunction_trailer);
+	var theSubObject;
+	var fltShiftY=0.025;
+	that.carModel.lstTrailerModels[intTrailer].lstAveragingWheels=[];
+	that.carModel.lstTrailerModels[intTrailer].lstTurningWheels=[];
+	var theObject=that.carModel.lstTrailerModels[intTrailer].getObjectByName("WheelRaycasters_trailer");
+	for(var ii=0;ii<theObject.children.length;ii++){
+		theSubObject=theObject.children[ii];
+		if("wheel"==theSubObject.name.substring(0,5)){
+			if("wheel_"==theSubObject.name.substring(0,6)){
+				if(-1!=theSubObject.name.indexOf("raycaster")){
+					if(-1!=theSubObject.name.indexOf("fl")){
+						that.carModel.lstTrailerModels[intTrailer].lstAveragingWheels[0]=theSubObject;
+					}
+					if(-1!=theSubObject.name.indexOf("fr")){
+						that.carModel.lstTrailerModels[intTrailer].lstAveragingWheels[1]=theSubObject;
+					}
+					if(-1!=theSubObject.name.indexOf("rl")){
+						that.carModel.lstTrailerModels[intTrailer].lstAveragingWheels[2]=theSubObject;
+					}
+					if(-1!=theSubObject.name.indexOf("rr")){
+						that.carModel.lstTrailerModels[intTrailer].lstAveragingWheels[3]=theSubObject;
+					}
+				}
+			}
+		}
+	}
+	var theObject=that.carModel.lstTrailerModels[intTrailer].getObjectByName("WheelGeometries_trailer");
+	for(var ii=0;ii<theObject.children.length;ii++){
+		theSubObject=theObject.children[ii];
+		if("wheel"==theSubObject.name.substring(0,5)){
+			if("wheel_"==theSubObject.name.substring(0,6)){
+				if(-1!=theSubObject.name.indexOf("turning")){
+					if(-1!=theSubObject.name.indexOf("fl")){
+						that.carModel.lstTrailerModels[intTrailer].lstTurningWheels[0]=theSubObject;
+					}
+					if(-1!=theSubObject.name.indexOf("fr")){
+						that.carModel.lstTrailerModels[intTrailer].lstTurningWheels[1]=theSubObject;
+					}
+					if(-1!=theSubObject.name.indexOf("rl")){
+						that.carModel.lstTrailerModels[intTrailer].lstTurningWheels[2]=theSubObject;
+					}
+					if(-1!=theSubObject.name.indexOf("rr")){
+						that.carModel.lstTrailerModels[intTrailer].lstTurningWheels[3]=theSubObject;
+					}
+					
+				}
+			}
+		}
+	}
+	that.carModel.lstTrailerModels[intTrailer].body=that.carModel.lstTrailerModels[intTrailer].getObjectByName("body_trailer");
+	that.carModel.lstTrailerModels[intTrailer].body.theQuaternion=new THREE.Quaternion();
+	that.carModel.lstTrailerModels[intTrailer].wheels=that.carModel.lstTrailerModels[intTrailer].getObjectByName("WheelGeometries_trailer");
+	that.carModel.lstTrailerModels[intTrailer].wheels.frontAngle=0;
+	that.carModel.lstTrailerModels[intTrailer].fltWheelRadius=0.5;
+	that.carModel.lstTrailerModels[intTrailer].fltMaxSpringLength=that.carModel.lstTrailerModels[intTrailer].fltWheelRadius;
+	for(var ii=0;ii<that.carModel.lstTrailerModels[intTrailer].wheels.children.length;ii++){
+		that.lstWheels.push(that.carModel.lstTrailerModels[intTrailer].wheels.children[ii]);
+	}
+	that.carModel.lstTrailerModels[intTrailer].lstWheels=[];
+	for(var ii=0;ii<that.carModel.lstTrailerModels[intTrailer].wheels.children.length;ii++)
+		that.carModel.lstTrailerModels[intTrailer].lstWheels.push(that.carModel.lstTrailerModels[intTrailer].wheels.children[ii]);
+	that.carModel.lstTrailerModels[intTrailer].lstVec3raycastersInitialPositions=[];
+	for(var ii=0;ii<that.carModel.lstTrailerModels[intTrailer].lstAveragingWheels.length;ii++){
+		that.carModel.lstTrailerModels[intTrailer].lstAveragingWheels[ii].raycaster=new THREE.Raycaster();
+		that.carModel.lstTrailerModels[intTrailer].lstAveragingWheels[ii].raycaster.ray.direction.set(0,-1,0);
+		that.carModel.lstTrailerModels[intTrailer].lstAveragingWheels[ii].vec3initialPosition=that.carModel.lstTrailerModels[intTrailer].lstAveragingWheels[ii].position.clone();
+		that.carModel.lstTrailerModels[intTrailer].lstVec3raycastersInitialPositions[ii]=that.carModel.lstTrailerModels[intTrailer].lstAveragingWheels[ii].position.clone();
+	}
+	var shadow=that.createShadow(1,4.5);
+	shadow.position.z=5.5;
+	that.carModel.lstTrailerModels[intTrailer].getObjectByName("body_trailer").add(shadow);
+	that.train.add(that.carModel.lstTrailerModels[intTrailer]);
+	that.carModel.lstTrailerModels[intTrailer].scale.x*=0.1;
+	that.carModel.lstTrailerModels[intTrailer].scale.y*=0.1;
+	that.carModel.lstTrailerModels[intTrailer].scale.z*=0.1;
+	if(0==intTrailer){
+		that.carModel.lstTrailerModels[intTrailer].frontHack=that.carModel.getObjectByName("SattleHack");
+		that.carModel.lstTrailerModels[intTrailer].frontTrolley=null;
+		//TODO: other cars than with sattle hack
+	}else{
+		that.carModel.lstTrailerModels[intTrailer].frontHack=that.carModel.lstTrailerModels[intTrailer-1].getObjectByName("SattleHack_trailer");
+		if(undefined==that.carModel.lstTrailerModels[intTrailer].frontHack){
+			//it must be normal trailer, or different coupling, without additional with sattle hack
+			that.carModel.lstTrailerModels[intTrailer].frontHack=that.carModel.lstTrailerModels[intTrailer-1].getObjectByName("RearHack_trailer");
+			that.carModel.lstTrailerModels[intTrailer].blnOnSattleHack=false;
+			that.carModel.lstTrailerModels[intTrailer].frontTrolley=null;
+			that.carModel.lstTrailerModels[intTrailer].main_trailer=null;
+		}else{
+			that.carModel.lstTrailerModels[intTrailer].blnOnSattleHack=true;
+			that.carModel.lstTrailerModels[intTrailer].frontTrolley=that.carModel.lstTrailerModels[intTrailer-1].getObjectByName("RearTrolley");
+			//there can be option blnOnSattleHack but trailer will be decoupled during the game and the case when the trailer is on the car
+		}
+	}
+	var trolleyWheels=that.carModel.lstTrailerModels[intTrailer].getObjectByName("WheelGeometries_trolley");
+	if(undefined!=trolleyWheels&&that.intTrailersToLoad>0){
+		for(var ii=0;ii<trolleyWheels.children.length;ii++){
+			that.lstWheels.push(trolleyWheels.children[ii]);
+		}
+		for(var ii=0;ii<trolleyWheels.children.length;ii++)
+			that.carModel.lstTrailerModels[intTrailer].lstWheels.push(trolleyWheels.children[ii]);
+	}
+	that.carModel.lstTrailerModels[intTrailer].traverse(that.materialTraverseFunction);
+	if(0==intTrailer){
+		var objSattle=that.carModel.getObjectByName("Sattle");
+		var vec3sattleWorldPosition=new THREE.Vector3();
+		objSattle.getWorldPosition(vec3sattleWorldPosition);
+		var vec3sattleLocalPosition=new THREE.Vector3();
+		vec3sattleLocalPosition.copy(that.carModel.worldToLocal(vec3sattleWorldPosition));
+		vec3sattleLocalPosition.multiplyScalar(that.carModel.lstTrailerModels[intTrailer].scale.x);
+		that.carModel.lstTrailerModels[intTrailer].position.z=vec3sattleLocalPosition.z;
+	}
+	else{
+		that.setTrailerToHack(that,intTrailer);
+	}
+	if(that.intTrailersToLoad>0){
+		that.carLoader.load("./models/Cadealack_RoadTrain_trailer.glb",that.trailerLoadingFunction);
+	}else{
+		that.carModel.lstTrailerModels[intTrailer].getObjectByName("RearTrolley").clear();
+	}
+};
+MatrixHardDrive.prototype.testChecks=function(){
+	if(this.blnAutodrivePrev!=this.chkAutodrive.checked){
+		this.blnAutodrivePrev=this.chkAutodrive.checked;
+		this.chkAutodriveChanged();
+	}
+	if(this.blnEditorModePrev!=this.chkEditorMode.checked){
+		this.blnEditorModePrev=this.chkEditorMode.checked;
+		this.chkEditorModeChanged();
+	}
+};
+MatrixHardDrive.prototype.setTrailerToHack=function(that,intTrailer){
+	var vec3rearHackWorldPosition=new THREE.Vector3();
+	that.carModel.lstTrailerModels[intTrailer].frontHack.getWorldPosition(vec3rearHackWorldPosition);
+	var vec3rearHackLocalPosition=new THREE.Vector3();
+	vec3rearHackLocalPosition.copy(that.carModel.worldToLocal(vec3rearHackWorldPosition));
+	vec3rearHackLocalPosition.multiplyScalar(that.carModel.lstTrailerModels[intTrailer].scale.x);
+	that.carModel.lstTrailerModels[intTrailer].position.x=vec3rearHackLocalPosition.x;
+	that.carModel.lstTrailerModels[intTrailer].position.y=vec3rearHackLocalPosition.y;
+	that.carModel.lstTrailerModels[intTrailer].position.z=vec3rearHackLocalPosition.z;
+};
+MatrixHardDrive.prototype.chkAutodriveChanged=function(){
+};
+MatrixHardDrive.prototype.chkEditorModeChanged=function(){
+	if(false==this.chkEditorMode.checked){
+		if(null!=this.intersectedObject){
+			this.unselectObjectAction(true);
+		}
+		this.removeTransformControls();
+		this.intersectedObject=null;
+		this.intersectedFace=null;
+		this.intIntersectedFaceIndex=-1;
+		this.vec3intersectedPoint=null;
+		this.intSelectedVertexIndex=-1;
+		this.vec3selectedVertex=null;
+		this.controls.dispose();
+		this.train.add(this.camera);
+		this.controls=new OrbitControls(this.camera,this.container);
+		this.controls.enableZoom=true;
+		this.controls.enablePan=true;
+		this.controls.update();
+	}else{
+		this.controls.dispose();
+		this.train.remove(this.camera);
+		this.controls=new MapControls(this.camera,this.renderer.domElement);
+		this.controls.enableDamping=true;
+		this.controls.dampingFactor=0.05;
+		this.controls.screenSpacePanning=false;
+		this.controls.keyPanSpeed=100.0;
+		this.controls.minDistance=1;
+		this.controls.maxDistance=500;
+		this.controls.enabled=false;
+	}
+};
+MatrixHardDrive.prototype.removeTransformControls=function(){
+	if(null!=this.transformControls){
+		this.scene.remove(this.transformControls);
+		this.transformControls.dispose();
+		this.transformControls=null;
+	}
+	this.divTransformControlsInfo.style.display="none";
+};
+MatrixHardDrive.prototype.selectObjectAction=function(intSelectMode){
+	this.removeTransformControls();
+	if(this.intersectedObject.strType=="RoadObject"){
+		this.regions.lstRoadsObjects[this.regions.intActualRegion].enable(true);
+		var intII=this.intersectedObject.superRoadsObject.getIIfromRoad(this.intersectedObject);
+		var advancedCurve=this.intersectedObject.superRoadsObject.lstAdvancedCurves[intII];
+		advancedCurve.addToGUI();
+		advancedCurve.addToView(this.regions.lstGrids[this.regions.intActualRegion]);
+		advancedCurve.enable(true);
+	}else{
+		this.regions.lstRoadsObjects[this.regions.intActualRegion].enable(false);
+	}
+	this.divTransformControlsInfo.style.display="";
+	this.transformControls=new TransformControls(this.camera,this.renderer.domElement);
+	this.transformControls.matrixHardDrive=this;
+	this.transformControls.intUndoRedoLimit=100;
+	this.transformControls.lstUndoEntries=this.intersectedObject.lstUndoEntries;
+	this.transformControls.lstRedoEntries=this.intersectedObject.lstRedoEntries;
+	this.transformControls.undo=function(){
+		var lstUndoEntry=this.lstUndoEntries.pop();
+		if(undefined==lstUndoEntry)return;
+
+		if(this.lstRedoEntries.length<this.intUndoRedoLimit)
+			this.lstRedoEntries.push(lstUndoEntry);
+		else{
+			for(var ii=1;ii<this.lstRedoEntries.length;ii++)
+				this.lstRedoEntries[ii-1]=this.lstRedoEntries[ii];
+			this.lstRedoEntries[this.lstRedoEntry.length-1]=lstUndoEntry;
+		}
+		//undo
+		switch(lstUndoEntry[0]){
+			case "nonIndexedFace_position_i":
+				lstUndoEntry[1].updateNonIndexedFace_undo(lstUndoEntry[2]);
+				break;
+			case "indexedFace_position_i":
+				lstUndoEntry[1].updateIndexedFace_undo(lstUndoEntry[2]);
+				break;
+			case "indexedVertex_position_i":
+				lstUndoEntry[1].updateIndexedVertex_undo(lstUndoEntry[2]);
+				break;
+			case "mesh_position":
+				lstUndoEntry[1].undoMeshPosition(lstUndoEntry[2]);
+				break;
+		}
+	};
+	this.transformControls.redo=function(){
+		var lstRedoEntry=this.lstRedoEntries.pop();
+		if(undefined==lstRedoEntry)return;
+		if(this.lstUndoEntries.length<this.intUndoRedoLimit)
+			this.lstUndoEntries.push(lstRedoEntry);
+		else{
+			for(var ii=1;ii<this.lstUndoEntries.length;ii++)
+				this.lstUndoEntries[ii-1]=this.lstUndoEntries[ii];
+			this.lstUndoEntries[this.lstUndoEntry.length-1]=lstRedoEntry;
+		}
+		//redo
+		switch(lstRedoEntry[0]){
+			case "nonIndexedFace_position_i":
+				lstRedoEntry[1].updateNonIndexedFace_redo(lstRedoEntry[2]);
+				break;
+			case "indexedFace_position_i":
+				lstRedoEntry[1].updateIndexedFace_redo(lstRedoEntry[2]);
+				break;
+			case "indexedVertex_position_i":
+				lstRedoEntry[1].updateIndexedVertex_redo(lstRedoEntry[2]);
+				break;
+			case "mesh_position":
+				lstRedoEntry[1].redoMeshPosition(lstRedoEntry[2]);
+				break;
+		}
+	};
+	this.transformControls.undoMeshPosition=function(lstUndoEntry){
+		var intersectedObject=lstUndoEntry[0][1];
+		var vec3actualPosition=lstUndoEntry[0][2];
+		intersectedObject.mesh.position.x=vec3actualPosition.x;
+		intersectedObject.mesh.position.y=vec3actualPosition.y;
+		intersectedObject.mesh.position.z=vec3actualPosition.z;
+	};
+	this.transformControls.redoMeshPosition=function(lstRedoEntry){
+		var intersectedObject=lstRedoEntry[0][1];
+		var vec3actualPosition=lstRedoEntry[0][2];
+		intersectedObject.mesh.position.x=vec3actualPosition.x;
+		intersectedObject.mesh.position.y=vec3actualPosition.y;
+		intersectedObject.mesh.position.z=vec3actualPosition.z;
+
+	};
+	if(1==intSelectMode){
+		this.transformControls.addEventListener("dragging-changed",function(event){
+			if(false==event.value){
+				this.matrixHardDrive.controls.enabled=true;
+				if(true==this.matrixHardDrive.chkEditorMode.checked)
+					this.matrixHardDrive.controls.enabled=this.blnControlPressed;
+				else
+					this.matrixHardDrive.controls.enabled=true;
+				if(null==this.matrixHardDrive.intersectedObject)return;
+				this.matrixHardDrive.regions.lstTriangleSelectors[this.matrixHardDrive.regions.intActualRegion].updateFace(this.matrixHardDrive.intersectedObject,this.matrixHardDrive.intIntersectedFaceIndex,this,this.matrixHardDrive.intersectedFace);
+				this.matrixHardDrive.updateTriangleSelector();
+				var vec3triangleCenter=this.matrixHardDrive.computeTriangleSelectorCenterPoint();
+				this.matrixHardDrive.transformControls.position.x=vec3triangleCenter.x;
+				this.matrixHardDrive.transformControls.position.y=vec3triangleCenter.y;
+				this.matrixHardDrive.transformControls.position.z=vec3triangleCenter.z;
+			}else{
+				this.matrixHardDrive.controls.enabled=false;
+			}
+		});
+	}
+	if(0==intSelectMode){
+		this.transformControls.addEventListener("dragging-changed",function(event){
+
+			if(false==event.value){
+				this.matrixHardDrive.controls.enabled=true;
+				if(true==this.matrixHardDrive.chkEditorMode.checked)
+					this.matrixHardDrive.controls.enabled=this.matrixHardDrive.blnControlPressed;
+				else
+					this.matrixHardDrive.controls.enabled=true;
+				if(null==this.matrixHardDrive.intersectedObject)return;
+				var vec3actualPosition=this.matrixHardDrive.intersectedObject.mesh.position.clone();
+				//TODO:initial position and position-1 (that is actual position)
+				this.matrixHardDrive.intersectedObject.lstUndoEntries.push(["mesh_position",this,[["mesh_position",this.matrixHardDrive.intersectedObject,vec3actualPosition]]]);
+				var boxSelectorMesh=this.matrixHardDrive.regions.lstBoxSelectors[this.matrixHardDrive.regions.intActualRegion].mesh;
+				this.matrixHardDrive.transformControls.position.x=this.vec3intersectedPoint.x;
+				this.matrixHardDrive.transformControls.position.y=this.vec3intersectedPoint.y;
+				this.matrixHardDrive.transformControls.position.z=this.vec3intersectedPoint.z;
+			}else{
+				this.matrixHardDrive.controls.enabled=false;
+			}
+
+		});
+	}
+	if(2==intSelectMode){
+		this.transformControls.addEventListener("dragging-changed",function(event){
+
+			if(false==event.value){
+				this.matrixHardDrive.controls.enabled=true;
+				if(true==this.matrixHardDrive.chkEditorMode.checked)
+					this.matrixHardDrive.controls.enabled=this.matrixHardDrive.blnControlPressed;
+				else
+					this.matrixHardDrive.controls.enabled=true;
+				var sphereSelector=this.matrixHardDrive.regions.lstSphereSelectors[this.matrixHardDrive.regions.intActualRegion];
+				if(null==this.matrixHardDrive.intersectedObject)return;
+				sphereSelector.updateVertex(this.matrixHardDrive.intersectedObject,this.matrixHardDrive.intSelectedVertexIndex,this.matrixHardDrive.vec3selectedVertex,this);
+				this.matrixHardDrive.updateSphereSelector(false);
+				this.matrixHardDrive.updateTriangleSelector();
+			}else{
+				this.matrixHardDrive.controls.enabled=false;
+			}
+		});
+
+	}
+	if(0==intSelectMode){
+		var vec3actualPosition=this.intersectedObject.mesh.position.clone();
+		this.intersectedObject.lstUndoEntries.push(["mesh_position",this.transformControls,[["mesh_position",this.intersectedObject,vec3actualPosition]]]);
+		this.transformControls.attach(this.intersectedObject.mesh);
+	}
+	if(1==intSelectMode){
+		this.transformControls.attach(this.regions.lstTriangleSelectors[this.regions.intActualRegion].mesh);
+		var vec3triangleCenter=this.computeTriangleSelectorCenterPoint();
+		this.transformControls.position.x=vec3triangleCenter.x;
+		this.transformControls.position.y=vec3triangleCenter.y;
+		this.transformControls.position.z=vec3triangleCenter.z;
+		this.transformControls.setSize(0.1);
+	}
+	if(2==intSelectMode){
+		this.transformControls.attach(this.regions.lstSphereSelectors[this.regions.intActualRegion].mesh);
+		this.transformControls.setSize(1);
+	}
+	this.scene.add(this.transformControls);
+};
+MatrixHardDrive.prototype.selectPoint=function(lstIntersections){
+	if(undefined==lstIntersections)return;
+	if(undefined==lstIntersections[0])return;
+	if(true==this.blnLMB){
+		this.vec3intersectedPoint=lstIntersections[0].point;
+	}
+	if(undefined==this.vec3intersectedPoint)return;
+	this.regions.lstBoxSelectors[this.regions.intActualRegion].mesh.visible=true;
+	var boxSelectorMesh=this.regions.lstBoxSelectors[this.regions.intActualRegion].mesh;
+	var grid=this.regions.lstGrids[this.regions.intActualRegion];
+	var point=grid.worldToLocal(this.vec3intersectedPoint.clone());
+	boxSelectorMesh.position.x=point.x;
+	boxSelectorMesh.position.y=point.y;
+	boxSelectorMesh.position.z=point.z;
+	if(null!=this.transformControls){
+	}
+};
+MatrixHardDrive.prototype.unselectObjectAction=function(blnReallyUnselect){
+	this.intersectedObject.setColorHex(this.intersectedObject.currentHex);
+	this.intersectedObject.setFltOpacity(this.intersectedObject.currentFltOpacity);
+	this.intersectedObject.setBlnTransparency(this.intersectedObject.currentBlnTransparency);
+	if(true==blnReallyUnselect){
+		if(undefined!=this.intersectedObject.mesh.material){
+			this.intersectedObject.mesh.material.wireframe=false;
+			if("RoadObject"==this.intersectedObject.strType){
+				var intII=this.intersectedObject.superRoadsObject.getIIfromRoad(this.intersectedObject);
+				var advancedCurve=this.intersectedObject.superRoadsObject.lstAdvancedCurves[intII]
+				advancedCurve.removeFromGUI();
+				advancedCurve.removeFromView(this.regions.lstGrids[this.regions.intActualRegion]);
+			}
+		}
+		this.regions.lstTriangleSelectors[this.regions.intActualRegion].mesh.visible=false;
+		this.regions.lstSphereSelectors[this.regions.intActualRegion].mesh.visible=false;
+		this.regions.lstBoxSelectors[this.regions.intActualRegion].mesh.visible=false;
+	}
+};
+MatrixHardDrive.prototype.onMouseWheel=function(evtMouse){
+	var that=window.mhd;
+	var activeComputer=that.lstComputers[that.intActiveComputer];
+	if(undefined!=activeComputer)activeComputer.onMouseWheel(evtMouse);
+	that.controls.onMouseWheel(evtMouse);
+	return;
+	if(false==that.blnShiftPressed&&false==that.blnControlPressed&&false==that.blnAltPressed){
+		if(evtMouse.deltaY>0)that.fltCameraHeight+=0.1;
+		if(evtMouse.deltaY<0)that.fltCameraHeight-=0.1;
+	}else{
+		if(true==that.blnShiftPressed){
+			if(evtMouse.deltaY>0)that.fltCameraRotationX+=0.1;
+			if(evtMouse.deltaY<0)that.fltCameraRotationX-=0.1;
+
+		}
+		if(true==that.blnControlPressed){
+			if(evtMouse.deltaY>0)that.fltCameraRotationY+=0.1;
+			if(evtMouse.deltaY<0)that.fltCameraRotationY-=0.1;
+
+		}
+		if(true==that.blnAltPressed){
+			if(evtMouse.deltaY>0)that.fltCameraRotationZ+=0.1;
+			if(evtMouse.deltaY<0)that.fltCameraRotationZ-=0.1;
+		}
+	}
+};
+MatrixHardDrive.prototype.onPointerDown=function(evtPointer){
+	var that=window.mhd;
+	evtPointer.preventDefault();
+	var activeComputer=that.lstComputers[that.intActiveComputer];
+	if(undefined!=activeComputer)activeComputer.onMouseDown(evtPointer);
+	if(1==evtPointer.buttons)that.blnLMB=true;
+	if(2==evtPointer.buttons)that.blnRMB=true;
+	if(4==evtPointer.buttons)that.blnMMB=true;
+	if(null!=that.controls)
+		that.controls.onPointerDown(evtPointer);
+	if(true==that.regions.lstRoadsObjects[that.regions.intActualRegion].isEnabled())
+		that.regions.lstRoadsObjects[that.regions.intActualRegion].onPointerDown(evtPointer);
+};
+MatrixHardDrive.prototype.updateLookaround=function(){
+	this.vec3forward.x=Math.sin(this.vec2mousePosition.x);
+	this.vec3forward.y=0;
+	this.vec3forward.z=Math.cos(this.vec2mousePosition.x);
+	this.vec3right.x=-1.*Math.cos(this.vec2mousePosition.x);
+	this.vec3right.y=0;
+	this.vec3right.z=Math.sin(this.vec2mousePosition.x);
+	this.vec3lookat.x=Math.sin(this.vec2mousePosition.x)*Math.cos(this.vec2mousePosition.y);
+	this.vec3lookat.y=Math.sin(this.vec2mousePosition.y);
+	this.vec3lookat.z=Math.cos(this.vec2mousePosition.x)*Math.cos(this.vec2mousePosition.y);
+	this.vec3up.crossVectors(this.vec3right,this.vec3lookat);
+	this.vec3up.normalize();
+};
+MatrixHardDrive.prototype.computeMousePosition=function(){
+	this.vec2mousePosition.x-=this.vec2mouseDiff.x*this.fltMouseSpeed;
+	this.vec2mousePosition.y-=this.vec2mouseDiff.y*this.fltMouseSpeed;
+	if(this.vec2mousePosition.y<-Math.PI/2)
+		this.vec2mousePosition.y=-Math.PI/2;
+	if(this.vec2mousePosition.y>Math.PI/2)
+		this.vec2mousePosition.y=Math.PI/2;
+	if(this.vec2mousePosition.x<-Math.PI)
+		this.vec2mousePosition.x+=2*Math.PI;
+	if(this.vec2mousePosition.x>Math.PI)
+		this.vec2mousePosition.x-=2*Math.PI;
+};
+MatrixHardDrive.prototype.onPointerMove=function(evtPointer){
+	var that=window.mhd;
+	evtPointer.preventDefault();
+	var activeComputer=that.lstComputers[that.intActiveComputer];
+	if(undefined!=activeComputer)activeComputer.onMouseMove(evtPointer);
+	if(null!=that.controls)
+		that.controls.onPointerMove(evtPointer);
+	that.vec2mouse.x=(event.clientX/window.innerWidth)*2-1;
+	that.vec2mouse.y=-(event.clientY/window.innerHeight)*2+1;
+	if(null==that.vec2prevMouse.x||null==that.vec2prevMouse.y){
+		that.vec2mouseDiff.x=0;
+		that.vec2mouseDiff.y=0;
+	}else{
+		that.vec2mouseDiff.x=that.vec2mouse.x-that.vec2prevMouse.x;
+		that.vec2mouseDiff.y=that.vec2mouse.y-that.vec2prevMouse.y;
+	}
+	if(1==that.intCameraNumber&&false==that.blnMouseBlocked){
+		that.computeMousePosition();
+		that.updateLookaround();
+		if(that.vec3lookat.z>0)
+			that.camera.rotation.y=Math.asin(that.vec3lookat.x/1.);
+		else
+			that.camera.rotation.y=Math.PI-Math.asin(that.vec3lookat.x/1.);
+		that.camera.rotation.x=-1.*Math.asin(that.vec3lookat.y/1.)*Math.cos(that.camera.rotation.y);
+		that.camera.rotation.z=Math.asin(that.vec3lookat.y/1.)*Math.sin(that.camera.rotation.y);
+		that.camera.updateWorldMatrix(true,true);
+	}
+	that.vec2prevMouse.copy(that.vec2mouse);
+	if(true==that.regions.lstRoadsObjects[that.regions.intActualRegion].isEnabled())
+		that.regions.lstRoadsObjects[that.regions.intActualRegion].onPointerMove(evtPointer);
+};
+MatrixHardDrive.prototype.onPointerUp=function(evtPointer){
+	var that=window.mhd;
+	evtPointer.preventDefault();
+	var activeComputer=that.lstComputers[that.intActiveComputer];
+	if(undefined!=activeComputer)activeComputer.onMouseUp(evtPointer);
+	that.blnLMB=false;
+	that.blnRMB=false;
+	that.blnMMB=false;
+	that.vec2prevMouse.x=null;
+	that.vec2prevMouse.y=null;
+	if(null!=that.controls)
+		that.controls.onPointerUp(evtPointer);
+	if(true==that.regions.lstRoadsObjects[that.regions.intActualRegion].isEnabled())
+		that.regions.lstRoadsObjects[that.regions.intActualRegion].onPointerUp(evtPointer);
+};
+MatrixHardDrive.prototype.onKeyDownTransformControls=function(evtKey,theTransformControls){
+	var that=window.mhd;
+	if(null!=that.chkKeyboardOff&&true==that.chkKeyboardOff.checked)return;
+	switch(evtKey.key){
+		case "z":
+			if(true==evtKey.ctrlKey){
+				if(undefined!=theTransformControls.undo)
+				theTransformControls.undo();
+			}
+			if(true==evtKey.altKey){
+				if(undefined!=theTransformControls.redo)
+				theTransformControls.redo();
+			}
+			break;
+	};
+	switch(evtKey.keyCode){
+		case 81://Q
+			theTransformControls.setSpace(theTransformControls.space==="local"?"world":"local");
+			break;
+		case 87://W
+			theTransformControls.setMode("translate");
+			break;
+		case 69://E
+			theTransformControls.setMode("rotate");
+			break;
+		case 82://R
+			theTransformControls.setMode("scale");
+			break;
+		case 86://V
+			var randomFoV=Math.random()+0.1;
+			var randomZoom=Math.random()+0.1;
+			this.camera.fov=randomFoV*160;
+			this.camera.zoom=randomZoom*5;
+			this.onWindowResize();
+			break;
+		case 187:
+		case 107://+,=,num+
+			theTransformControls.setSize(theTransformControls.size+0.1);
+			break;
+		case 189:
+		case 109://-,_,num-
+			theTransformControls.setSize(Math.max(theTransformControls.size-0.1,0.1));
+			break;
+		case 88://X
+			theTransformControls.showX=!theTransformControls.showX;
+			break;
+		case 89://Y
+			theTransformControls.showY=!theTransformControls.showY;
+			break;
+		case 90://Z
+			theTransformControls.showZ=!theTransformControls.showZ;
+			break;
+		case 32://Spacebar
+			theTransformControls.enabled=!theTransformControls.enabled;
+			break;
+	}
+};
+MatrixHardDrive.prototype.playerHeadMovement=function(dt){
+	if(false==this.blnCameraLookaroundMode)return;
+	var vec3target=new THREE.Vector3();
+	this.camera.getWorldDirection(vec3target);
+	if(1&this.intKeyboard||1&this.intKeyboardClick){
+		this.camera.position.x-=this.vec3forward.x*this.fltCameraWalkingSpeedX*dt;
+		this.camera.position.y-=this.vec3forward.y*this.fltCameraWalkingSpeedY*dt;
+		this.camera.position.z-=this.vec3forward.z*this.fltCameraWalkingSpeedZ*dt;
+		this.intKeyboardClick&=~1;
+	}
+	if(2&this.intKeyboard||2&this.intKeyboardClick){
+		this.camera.position.x-=this.vec3right.x*this.fltCameraWalkingSpeedX*dt;
+		this.camera.position.y-=this.vec3right.y*this.fltCameraWalkingSpeedY*dt;
+		this.camera.position.z-=this.vec3right.z*this.fltCameraWalkingSpeedZ*dt;
+		this.intKeyboardClick&=~2;
+	}
+	if(4&this.intKeyboard||4&this.intKeyboardClick){
+		this.camera.position.x+=this.vec3forward.x*this.fltCameraWalkingSpeedX*dt;
+		this.camera.position.y+=this.vec3forward.y*this.fltCameraWalkingSpeedY*dt;
+		this.camera.position.z+=this.vec3forward.z*this.fltCameraWalkingSpeedZ*dt;
+		this.intKeyboardClick&=~4;
+	}
+	if(8&this.intKeyboard||8&this.intKeyboardClick){
+		this.camera.position.x+=this.vec3right.x*this.fltCameraWalkingSpeedX*dt;
+		this.camera.position.y+=this.vec3right.y*this.fltCameraWalkingSpeedY*dt;
+		this.camera.position.z+=this.vec3right.z*this.fltCameraWalkingSpeedZ*dt;
+		this.intKeyboardClick&=~8;
+	}
+	if(16&this.intKeyboard||16&this.intKeyboardClick){
+		this.camera.position.y+=this.fltSquatingSpeed*this.fltCameraWalkingSpeedY*dt;
+		this.intKeyboardClick&=~16;
+	}
+	if(32&this.intKeyboard||32&this.intKeyboardClick){
+		this.camera.position.y-=this.fltSquatingSpeed*this.fltCameraWalkingSpeedY*dt;
+		this.intKeyboardClick&=~32;
+	}
+
+	if(64&this.intKeyboard||64&this.intKeyboardClick){
+		this.camera.position.x-=this.vec3forward.x*this.fltCameraRunningSpeedX*dt;
+		this.camera.position.y-=this.vec3forward.y*this.fltCameraRunningSpeedY*dt;
+		this.camera.position.z-=this.vec3forward.z*this.fltCameraRunningSpeedZ*dt;
+		this.intKeyboardClick&=~64;
+	}
+	if(128&this.intKeyboard||128&this.intKeyboardClick){
+		this.camera.position.x-=this.vec3right.x*this.fltCameraRunningSpeedX*dt;
+		this.camera.position.y-=this.vec3right.y*this.fltCameraRunningSpeedY*dt;
+		this.camera.position.z-=this.vec3right.z*this.fltCameraRunningSpeedZ*dt;
+		this.intKeyboardClick&=~128;
+	}
+	if(256&this.intKeyboard||256&this.intKeyboardClick){
+		this.camera.position.x+=this.vec3forward.x*this.fltCameraRunningSpeedX*dt;
+		this.camera.position.y+=this.vec3forward.y*this.fltCameraRunningSpeedY*dt;
+		this.camera.position.z+=this.vec3forward.z*this.fltCameraRunningSpeedZ*dt;
+		this.intKeyboardClick&=~256;
+	}
+	if(512&this.intKeyboard||512&this.intKeyboardClick){
+		this.camera.position.x+=this.vec3right.x*this.fltCameraRunningSpeedX*dt;
+		this.camera.position.y+=this.vec3right.y*this.fltCameraRunningSpeedY*dt;
+		this.camera.position.z+=this.vec3right.z*this.fltCameraRunningSpeedZ*dt;
+		this.intKeyboardClick&=~512;
+	}
+	if(1024&this.intKeyboard||1024&this.intKeyboardClick){
+		this.camera.position.y+=this.fltSquatingSpeed*this.fltCameraRunningSpeedY*dt;
+		this.intKeyboardClick&=~1024;
+	}
+	if(2048&this.intKeyboard||2048&this.intKeyboardClick){
+		this.camera.position.y-=this.fltSquatingSpeed*this.fltCameraRunningSpeedY*dt;
+		this.intKeyboardClick&=~2048;
+	}
+};
+MatrixHardDrive.prototype.onKeyDown=function(evtKey){
+	var that=window.mhd;
+	var fltNow;
+	var activeComputer=that.lstComputers[that.intActiveComputer];
+	if(undefined!=activeComputer)activeComputer.onKeyDown(evtKey);
+	if(null!=that.chkComputerKeyboardOff&&"K"==evtKey.key&&true==evtKey.ctrlKey){
+		that.chkComputerKeyboardOff.checked=!that.chkComputerKeyboardOff.checked;
+		return;
+	}
+	if(null!=that.chkKeyboardOff&&"K"==evtKey.key)that.chkKeyboardOff.checked=!that.chkKeyboardOff.checked;
+	if(null!=that.chkKeyboardOff&&true==that.chkKeyboardOff.checked)return;
+	if(false==that.blnCameraLookaroundMode){
+		if(false==that.chkAutodrive.checked){
+			if("ArrowLeft"==evtKey.key){
+				if(null!=that.lstArrowKeysDown&&"ArrowLeft"!=that.lstArrowKeysDown[0]){
+					that.lstArrowKeysDown=["ArrowLeft",performance.now()];
+					that.fltArrowTurn=that.fltArrowTurnShort;
+					that.fltArrowVelocity=that.fltArrowVelocityLong;
+				}
+				if(null==that.lstArrowKeysDown){
+					that.lstArrowKeysDown=["ArrowLeft",performance.now()];
+					that.fltArrowTurn=that.fltArrowTurnShort;
+					that.fltArrowVelocity=that.fltArrowVelocityLong;
+				}
+				fltNow=performance.now();
+				if((fltNow-that.lstArrowKeysDown[1])>this.fltLongKeypress){
+					that.fltArrowTurn=that.fltArrowTurnLong;
+				}
+				if(that.carModel.wheels.frontAngle<60){
+					that.carModel.wheels.frontAngle+=that.fltArrowTurn;
+					that.carModel.steeringWheel.rotation.z=that.fltJoystickToVirtualSteeringWheel*that.carModel.wheels.frontAngle/that.fltSteeringWheelToWheels;
+				}
+			}
+			if("ArrowRight"==evtKey.key){
+				if(null!=that.lstArrowKeysDown&&"ArrowRight"!=that.lstArrowKeysDown[0]){
+					that.lstArrowKeysDown=["ArrowRight",performance.now()];
+					that.fltArrowTurn=that.fltArrowTurnShort;
+					that.fltArrowVelocity=that.fltArrowVelocityLong;
+				}
+				if(null==that.lstArrowKeysDown){
+					that.lstArrowKeysDown=["ArrowRight",performance.now()];
+					that.fltArrowTurn=that.fltArrowTurnShort;
+					that.fltArrowVelocity=that.fltArrowVelocityLong;
+				}
+				fltNow=performance.now();
+				if((fltNow-that.lstArrowKeysDown[1])>this.fltLongKeypress){
+					that.fltArrowTurn=that.fltArrowTurnLong;
+				}
+				if(that.carModel.wheels.frontAngle>-60){
+					that.carModel.wheels.frontAngle-=that.fltArrowTurn;
+					that.carModel.steeringWheel.rotation.z=that.fltJoystickToVirtualSteeringWheel*that.carModel.wheels.frontAngle/that.fltSteeringWheelToWheels;
+				}
+			}
+		}
+		if("ArrowUp"==evtKey.key){
+			if(null!=that.lstArrowKeysDown&&"ArrowUp"!=that.lstArrowKeysDown[0]){
+				that.lstArrowKeysDown=["ArrowUp",performance.now()];
+				that.fltArrowTurn=that.fltArrowTurnShort;
+			}
+			if(null==that.lstArrowKeysDown){
+				that.lstArrowKeysDown=["ArrowUp",performance.now()];
+				that.fltArrowTurn=that.fltArrowTurnShort;
+			}
+			fltNow=performance.now();
+			if((fltNow-that.lstArrowKeysDown[1])>this.fltLongKeypress){
+				that.fltArrowVelocity=that.fltArrowVelocityLong;
+			}
+			if(false==that.blnHandbrake)//in reality the previous effect is just the way it is, but it's easier to play and enjoy so
+				that.fltVelocity+=that.intGearSign*that.fltArrowVelocity;
+		}
+		if("ArrowDown"==evtKey.key){
+			if(null!=that.lstArrowKeysDown&&"ArrowDown"!=that.lstArrowKeysDown[0]){
+				that.lstArrowKeysDown=["ArrowDown",performance.now()];
+				that.fltArrowTurn=that.fltArrowTurnShort;
+			}
+			if(null==that.lstArrowKeysDown){
+				that.lstArrowKeysDown=["ArrowDown",performance.now()];
+				that.fltArrowTurn=that.fltArrowTurnShort;
+			}
+			if((fltNow-that.lstArrowKeysDown[1])>this.fltLongKeypress){
+				that.fltArrowVelocity=that.fltArrowVelocityLong;
+			}
+			that.fltVelocity-=that.intGearSign*that.fltArrowVelocity;
+			if(that.fltVelocity<0)that.fltVelocity=0;
+		}
+	}else{//true==blnCameraLookaroundMode
+		switch(evtKey.key){
+			case "ArrowUp":
+				that.intKeyboard|=64;
+				that.intKeyboardClick|=64;
+				break;
+			case "ArrowDown":
+				that.intKeyboard|=256;
+				that.intKeyboardClick|=256;
+				break;
+			case "ArrowLeft":
+				that.intKeyboard|=512;
+				that.intKeyboardClick|=512;
+				break;
+			case "ArrowRight":
+				that.intKeyboard|=128;
+				that.intKeyboardClick|=128;
+			break;
+			case "PageUp":
+				that.intKeyboard|=1024;
+				that.intKeyboardClick|=1024;
+				break;
+			case "PageDown":
+				that.intKeyboard|=2048;
+				that.intKeyboardClick|=2048;
+				break;
+			case "w":
+				that.intKeyboard|=1;
+				that.intKeyboardClick|=1;
+				break;
+			case "d":
+				that.intKeyboard|=2;
+				that.intKeyboardClick|=2;
+				break;
+			case "s":
+				that.intKeyboard|=4;
+				that.intKeyboardClick|=4;
+				break;
+			case "a":
+				that.intKeyboard|=8;
+				that.intKeyboardClick|=8;
+				break;
+			case "r":
+				that.intKeyboard|=16;
+				that.intKeyboardClick|=16;
+				break;
+			case "f":
+				that.intKeyboard|=32;
+				that.intKeyboardClick|=32;
+				break;
+		}
+
+	}
+	if(" "==evtKey.key){
+		that.blnHandbrake=!that.blnHandbrake;
+		if(undefined!=evtKey.preventDefault)
+			evtKey.preventDefault();
+	}
+	if("Shift"==evtKey.key)that.blnShiftPressed=true;
+	if("Control"==evtKey.key){
+		that.blnControlPressed=true;
+		if(true==that.chkEditorMode.checked){
+			that.controls.enabled=true;
+		}
+	  }
+	if("Alt"==evtKey.key){
+		that.blnAltPressed=true;
+		that.blnMouseBlocked=!that.blnMouseBlocked;
+		if(true==that.blnMouseBlocked){
+			that.vec2prevMouse.x=null;
+			that.vec2prevMouse.y=null;
+
+		}
+	}
+	if("Shift"==evtKey.key)that.gearUp();
+	if("Control"==evtKey.key)that.gearDown();
+	if("p"==evtKey.key)that.blnPause=!that.blnPause;
+if("Home"==evtKey.key){that.camera.position.set(0,that.fltCameraHeight,that.fltCameraRear);that.camera.lookAt(that.carModel.position.clone());if(undefined!=that.controls){if(undefined!=that.controls.target)that.controls.target.copy(that.carModel.position);else that.controls.lookAt(that.carModel.position);that.controls.update();}}
+	if("c"==evtKey.key){
+		that.toggleCamera();
+	}
+	if("C"==evtKey.key){
+		if(1==that.intCameraNumber){
+			that.blnCameraLookaroundMode=!that.blnCameraLookaroundMode;
+			//console.log("C: blnCameraLookaroundMode="+that.blnCameraLookaroundMode);
+		}
+		
+	}
+	if(true==that.chkEditorMode.checked){
+		if("x"==evtKey.key)that.strAxis="x";
+		if("y"==evtKey.key)that.strAxis="y";
+		if("z"==evtKey.key)that.strAxis="z";
+		if("l"==evtKey.key)that.strAxis="l";
+	};
+	if(true==evtKey.ctrlKey)
+		if(null!=that.controls)
+			that.controls.onKeyDown(evtKey);
+	if(null!=that.transformControls)
+		that.onKeyDownTransformControls(evtKey,that.transformControls);
+	if(true==that.regions.lstRoadsObjects[that.regions.intActualRegion].isEnabled())
+		that.onKeyDownTransformControls(evtKey,that.regions.lstRoadsObjects[that.regions.intActualRegion].getTransformControls());
+};
+MatrixHardDrive.prototype.joystickButtonDown=function(intButton){
+	if(-1==this.lstSteeringWheelButtonsDown.indexOf(intButton))this.lstSteeringWheelButtonsDown.push(intButton);
+};
+MatrixHardDrive.prototype.joystickButtonCheck=function(intButton){
+	var intIndex=this.lstSteeringWheelButtonsDown.indexOf(intButton);
+	if(-1!=intIndex){
+		this.lstSteeringWheelButtonsDown.splice(intIndex,1);
+		this.joystickButtonUp(intButton);
+	}
+};
+MatrixHardDrive.prototype.joystickButtonUp=function(intButton){
+	if(6==intButton)this.gearDown();
+	if(7==intButton)this.gearUp();
+};
+MatrixHardDrive.prototype.joystickAxesValueChanged=function(intAxe,intValue){
+	if(0==intAxe){
+		if(null!=this.lstArrowKeysDown)return;
+		if(undefined!=this.carModel){
+			var fltWheelsAngle=(this.fltSteeringWheelToWheels*intValue)
+			if(fltWheelsAngle<60&&fltWheelsAngle>-60){
+				this.carModel.steeringWheel.rotation.z=this.fltJoystickToVirtualSteeringWheel*intValue;
+				this.carModel.wheels.frontAngle=intValue*this.fltSteeringWheelToWheels;
+			}
+		}
+	}
+	if(1==intAxe){
+		if(intValue<0){
+			//accelerate
+			if(false==this.blnHandbrake)//in reality the previous effect is just the way it is, but it's easier to play and enjoy so
+				this.fltVelocity+=this.intGearSign*this.fltArrowVelocityShort*Math.abs(intValue);
+				if(this.fltVelocityLimit>=0){
+					if(this.fltVelocity>this.fltVelocityLimit)this.fltVelocity=this.fltVelocityLimit;
+				}else{
+					if(this.fltVelocity<this.fltVelocityLimit)this.fltVelocity=this.fltVelocityLimit;
+				}
+		}
+		if(intValue>0){
+			//decelerate
+			this.fltVelocity-=2*this.fltArrowVelocityShort*Math.abs(intValue);
+			if(this.fltVelocity<0)this.fltVelocity=0;
+		}
+	}
+};
+MatrixHardDrive.prototype.toggleCamera=function(){
+	var headPlaceholder=this.carModel.getObjectByName("HeadPlaceholder");
+	this.carModel.headPlaceholder=headPlaceholder;
+	if(1==this.intCameraNumber){
+		this.blnCameraLookaroundMode=false;
+		headPlaceholder.remove(this.camera);
+		//camera view outside
+		this.train.add(this.camera);
+		this.camera.position.x=this.fltCameraX;
+		this.camera.position.y=this.fltCameraHeight;
+		this.camera.position.z=this.fltCameraRear;
+		this.camera.fov=50;
+		this.camera.far=500;
+		this.intCameraNumber=2;
+		this.controls=new OrbitControls(this.camera,this.container);
+		this.controls.enableZoom=true;
+		this.controls.enablePan=true;
+		this.controls.update();
+		this.onWindowResize();
+		return;
+	}
+	if(2==this.intCameraNumber){
+		this.train.remove(this.camera);
+		headPlaceholder.add(this.camera);
+		//camera view inside
+		this.controls.dispose();
+		this.controls=null;
+		this.camera.position.x=-0.0;
+		this.camera.position.y=0.0;
+		this.camera.position.z=0.3;
+		//this.camera.position.z=0.0;
+		this.camera.rotation.x=-0.21;
+		this.camera.rotation.y=-0.023;
+		this.camera.rotation.z=0.;
+		this.vec3forward.set(-0.004,0,1);
+		this.vec3right.set(-1,0,-0.004);
+		this.vec3lookat.set(-0.004,0.019,1);
+		this.camera.fov=55;
+		this.camera.far=5000;
+		this.intCameraNumber=1;
+		this.onWindowResize();
+		return;
+	}
+};
+MatrixHardDrive.prototype.onKeyUpTransformControls=function(evtKey,theTransformControls){
+};
+MatrixHardDrive.prototype.onKeyUp=function(evtKey){
+	var that=window.mhd;
+	var activeComputer=that.lstComputers[that.intActiveComputer];
+	if(undefined!=activeComputer)activeComputer.onKeyUp(evtKey);
+	if(null!=that.chkKeyboardOff&&true==that.chkKeyboardOff.checked)return;
+	that.blnShiftPressed=false;
+	that.blnControlPressed=false;
+	if(true==that.chkEditorMode.checked){
+		that.controls.enabled=false;
+	}
+	that.blnAltPressed=false;
+	switch(evtKey.key){
+		case "ArrowLeft":
+			that.intKeyboard&=~512;
+			that.lstArrowKeysDown=null;
+			that.fltArrowTurn=that.fltArrowTurnShort;
+			that.fltArrowVelocity=that.fltArrowVelocityShort;
+			break;
+		case "ArrowRight":
+			that.intKeyboard&=~128;
+			that.lstArrowKeysDown=null;
+			that.fltArrowTurn=that.fltArrowTurnShort;
+			that.fltArrowVelocity=that.fltArrowVelocityShort;
+			break;
+		case "ArrowUp":
+			that.intKeyboard&=~64;
+			that.lstArrowKeysDown=null;
+			that.fltArrowTurn=that.fltArrowTurnShort;
+			that.fltArrowVelocity=that.fltArrowVelocityShort;
+			break;
+		case "ArrowDown":
+			that.intKeyboard&=~256;
+			that.lstArrowKeysDown=null;
+			that.fltArrowTurn=that.fltArrowTurnShort;
+			that.fltArrowVelocity=that.fltArrowVelocityShort;
+			break;
+		case "PageUp":
+			that.intKeyboard&=~1024;
+			break;
+		case "PageDown":
+			that.intKeyboard&=~2048;
+			break;
+		case "w":
+			that.intKeyboard&=~1;
+			break;
+		case "d":
+			that.intKeyboard&=~2;
+			break;
+		case "s":
+			that.intKeyboard&=~4;
+			break;
+		case "a":
+			that.intKeyboard&=~8;
+			break;
+		case "r":
+			that.intKeyboard&=~16;
+			break;
+		case "f":
+			that.intKeyboard&=~32;
+			break;
+	}
+	if(null!=that.transformControls)
+		that.onKeyUpTransformControls(evtKey,that.transformControls);
+	if(true==that.regions.lstRoadsObjects[that.regions.intActualRegion].isEnabled())
+		that.onKeyUpTransformControls(evtKey,that.regions.lstRoadsObjects[that.regions.intActualRegion].getTransformControls());
+};
+MatrixHardDrive.prototype.onWindowResize=function(){
+	var that=window.mhd;
+	that.camera.aspect=window.innerWidth/window.innerHeight;
+	that.camera.updateProjectionMatrix();
+	that.renderer.setSize(window.innerWidth,window.innerHeight);
+};
+MatrixHardDrive.prototype.computeTriangleSelectorCenterPoint=function(){
+	var triangleSelectorMesh=this.regions.lstTriangleSelectors[this.regions.intActualRegion].mesh;
+	var linePosition=triangleSelectorMesh.geometry.attributes.position;
+	var fltx0,flty0,fltz0;
+	var fltx1,flty1,fltz1;
+	var fltx2,flty2,fltz2;
+	var fltX,fltY,fltZ;
+	fltX=triangleSelectorMesh.position.x;
+	fltY=triangleSelectorMesh.position.y;
+	fltZ=triangleSelectorMesh.position.z;
+	fltx0=linePosition.getX(0)+fltX;
+	flty0=linePosition.getY(0)+fltY;
+	fltz0=linePosition.getZ(0)+fltZ;
+	fltx1=linePosition.getX(1)+fltX;
+	flty1=linePosition.getY(1)+fltY;
+	fltz1=linePosition.getZ(1)+fltZ;
+	fltx2=linePosition.getX(2)+fltX;
+	flty2=linePosition.getY(2)+fltY;
+	fltz2=linePosition.getZ(2)+fltZ;
+	var fltx,flty,fltz;
+	fltx=(fltx0+fltx1+fltx2)/3.;
+	flty=(flty0+flty1+flty2)/3.;
+	fltz=(fltz0+fltz1+fltz2)/3.;
+	return new THREE.Vector3(fltx,flty,fltz);
+};
+MatrixHardDrive.prototype.computeSelectedPointIndex_indexed=function(){
+	if(undefined==this.intersectedObject){
+		return;
+	}
+	if(undefined==this.intersectedObject.mesh){
+		return;
+	}
+	if(undefined==this.intersectedObject.mesh.geometry){
+		return;
+	}
+	var positionArray=this.intersectedObject.mesh.geometry.attributes.position.array;
+	var indexArray=this.intersectedObject.mesh.geometry.index.array;
+	var facea=indexArray[3*this.intIntersectedFaceIndex+0];
+	var faceb=indexArray[3*this.intIntersectedFaceIndex+1];
+	var facec=indexArray[3*this.intIntersectedFaceIndex+2];
+	var triangleSelectorMeshPosition=this.regions.lstTriangleSelectors[this.regions.intActualRegion].mesh.position;
+	var lstIndices=[3*facea+0,3*facea+1,3*facea+2,3*faceb+0,3*faceb+1,3*faceb+2,3*facec+0,3*facec+1,3*facec+2];
+	var localIntersectedPoint=this.intersectedObject.mesh.worldToLocal(this.vec3intersectedPoint.clone());
+	var vec3position=new THREE.Vector3();
+	var fltMinDist,fltDist;
+	var vec3minPosition;
+	var intMinI=-1;
+	fltMinDist=-1;
+	for(var ii=0;ii<lstIndices.length;ii+=3){
+		vec3position.x=positionArray[lstIndices[ii+0]];
+		vec3position.y=positionArray[lstIndices[ii+1]];
+		vec3position.z=positionArray[lstIndices[ii+2]];
+		fltDist=Math.sqrt((vec3position.x-localIntersectedPoint.x)*(vec3position.x-localIntersectedPoint.x)+(vec3position.y-localIntersectedPoint.y)*(vec3position.y-localIntersectedPoint.y)+(vec3position.z-localIntersectedPoint.z)*(vec3position.z-localIntersectedPoint.z));
+		if(fltMinDist<0||fltDist<fltMinDist){
+			fltMinDist=fltDist;
+			vec3minPosition=vec3position.clone();
+			intMinI=lstIndices[ii+0];
+		}
+	}
+	return [intMinI/3,vec3minPosition];
+};
+MatrixHardDrive.prototype.computeSelectedPointIndex_nonIndexed=function(){
+	//TODO:not tested
+	if(undefined==this.intersectedObject){
+		return;
+	}
+	if(undefined==this.intersectedObject.mesh){
+		return;
+	}
+	if(undefined==this.intersectedObject.mesh.geometry){
+		return;
+	}
+	var fltEps=0.1;
+	var meshPosition=this.intersectedObject.mesh.geometry.attributes.position;	
+	var arrPositions=meshPosition.array;
+	var vec3position=new THREE.Vector3(0,0,0,1);
+	this.regions.lstGrids[this.regions.intActualRegion].updateWorldMatrix(true);
+	var fltMinDist,fltDist;
+	var vec3minPosition;
+	var intMinI=-1;
+	fltMinDist=-1;
+	var localIntersectedPoint=this.intersectedObject.mesh.worldToLocal(this.vec3intersectedPoint.clone());
+	for (var ii=3*3*this.intIntersectedFaceIndex;ii<3*3*(this.intIntersectedFaceIndex+1);ii+=3){
+		vec3position.x=arrPositions[ii+0];
+		vec3position.y=arrPositions[ii+1];
+		vec3position.z=arrPositions[ii+2];
+		fltDist=Math.sqrt((vec3position.x-localIntersectedPoint.x)*(vec3position.x-localIntersectedPoint.x)+(vec3position.y-localIntersectedPoint.y)*(vec3position.y-localIntersectedPoint.y)+(vec3position.z-localIntersectedPoint.z)*(vec3position.z-localIntersectedPoint.z));
+		if(fltMinDist<0||fltDist<fltMinDist){
+			fltMinDist=fltDist;
+			vec3minPosition=vec3position.clone();
+			intMinI=ii;
+		}
+		//TODO:traverse in more complicated objects
+	}
+	return [intMinI/3,vec3minPosition];
+};
+MatrixHardDrive.prototype.computeSelectedPointIndex=function(){
+	if(null!=this.intersectedObject.mesh.geometry.index)
+		return this.computeSelectedPointIndex_indexed();
+	else
+		return this.computeSelectedPointIndex_nonIndexed();
+};
+MatrixHardDrive.prototype.updateSphereSelector=function(blnFirstTime){
+	if(true==blnFirstTime)
+		[this.intSelectedVertexIndex,this.vec3selectedVertex]=this.computeSelectedPointIndex();
+	else{
+		var positionArray=this.intersectedObject.mesh.geometry.attributes.position.array;
+		this.vec3selectedVertex.x=positionArray[3*this.intSelectedVertexIndex+0];
+		this.vec3selectedVertex.y=positionArray[3*this.intSelectedVertexIndex+1];
+		this.vec3selectedVertex.z=positionArray[3*this.intSelectedVertexIndex+2];
+	}
+	var sphereSelector=this.regions.lstSphereSelectors[this.regions.intActualRegion];
+	if(true==blnFirstTime){
+		sphereSelector.mesh.position.x=this.vec3selectedVertex.x;
+		sphereSelector.mesh.position.y=this.vec3selectedVertex.y;
+		sphereSelector.mesh.position.z=this.vec3selectedVertex.z;
+		sphereSelector.vec3prevPosition.x=sphereSelector.mesh.position.x;
+		sphereSelector.vec3prevPosition.y=sphereSelector.mesh.position.y;
+		sphereSelector.vec3prevPosition.z=sphereSelector.mesh.position.z;
+	}
+	sphereSelector.mesh.visible=true;
+};
+MatrixHardDrive.prototype.updateTriangleSelector=function(){
+	this.regions.lstTriangleSelectors[this.regions.intActualRegion].updateTriangleSelector(this.intersectedObject,this.intersectedFace);
+};
+MatrixHardDrive.prototype.init=function() {
+	alert("No need to emphasize that, but to make you stronger, not weaker, nevertheless - the priority in the "+String.fromCharCode(34)+"Matrix Hard Drive"+String.fromCharCode(34)+" game is often the entertainment value upon the educational value, so when shaping habits, don't forget that in the real life traffic situations on the Venusian roads."+String.fromCharCode(10));
+	this.carLoader.load("./models/Cadealack_RoadTrain_truck.glb",this.carLoadingFunction);
+	this.regions.update([0,0],this.vec3position);
+};
+MatrixHardDrive.prototype.propagateTrailersRotations=function(){
+	if(undefined!=this.carModel&&undefined!=this.carModel.lstTrailerModels){
+		if(this.lstVec3prevTangents.length>this.intTrailers*this.intLstVec3prevTangentsLengthForTrailer){
+			this.lstVec3prevTangents.splice(0,this.lstVec3prevTangents.length-(this.intTrailers)*this.intLstVec3prevTangentsLengthForTrailer-1);
+		}
+		var vec3diff=new THREE.Vector3();
+		var vec3prevTangent,vec3tangent;
+		var intStrength;
+		for(var ii=0;ii<this.carModel.lstTrailerModels.length;ii++){
+			vec3prevTangent=this.lstVec3prevTangents[(this.intTrailers-ii-1)*this.intLstVec3prevTangentsLengthForTrailer];
+			vec3tangent=this.lstVec3prevTangents[(this.intTrailers-ii)*this.intLstVec3prevTangentsLengthForTrailer];
+			if(0==ii)vec3tangent=this.vec3tangent;
+			if(undefined!=vec3prevTangent&&undefined!=vec3tangent){
+				intStrength=5*this.fltVelocity*(ii+1);
+				vec3diff.copy(vec3prevTangent).sub(vec3tangent);
+				if(false==this.carModel.lstTrailerModels[ii].blnOnSattleHack){
+					this.carModel.lstTrailerModels[ii].rotation.y=intStrength*vec3diff.x;
+					this.carModel.lstTrailerModels[ii].rotation.x=intStrength*vec3diff.y;
+				}else{
+					//there can be option blnOnSattleHack but trailer will be decoupled during the game and the case when the trailer is on the car
+					if(0!=ii&&null!=this.carModel.lstTrailerModels[ii].frontTrolley){
+						
+						this.carModel.lstTrailerModels[ii].frontTrolley.rotation.y=0.5*intStrength*vec3diff.x;
+						this.carModel.lstTrailerModels[ii].frontTrolley.rotation.x=0.5*intStrength*vec3diff.y;
+						this.carModel.lstTrailerModels[ii].rotation.y=intStrength*vec3diff.x;
+						this.carModel.lstTrailerModels[ii].rotation.x=intStrength*vec3diff.y;
+					}
+				}
+
+			}
+			this.correctTrailerBodyRotation(ii);
+			if(ii>0)this.setTrailerToHack(this,ii);
+		}
+	}
+};
+MatrixHardDrive.prototype.propagateTrailersRotationsAutodrive=function(){
+	if(undefined!=this.carModel&&undefined!=this.carModel.lstTrailerModels){
+		if(this.lstVec3prevTangents.length>this.intTrailers*this.intLstVec3prevTangentsLengthForTrailer_autodrive){
+			this.lstVec3prevTangents.splice(0,this.lstVec3prevTangents.length-(this.intTrailers)*this.intLstVec3prevTangentsLengthForTrailer_autodrive-1);
+		}
+		var vec3diff=new THREE.Vector3();
+		var vec3prevTangent,vec3tangent;
+		var intStrength;
+		for(var ii=0;ii<this.carModel.lstTrailerModels.length;ii++){
+			vec3prevTangent=this.lstVec3prevTangents[(this.intTrailers-ii-1)*this.intLstVec3prevTangentsLengthForTrailer_autodrive];
+			vec3tangent=this.lstVec3prevTangents[(this.intTrailers-ii)*this.intLstVec3prevTangentsLengthForTrailer_autodrive];
+			if(0==ii)vec3tangent=this.vec3tangent;
+			if(undefined!=vec3prevTangent&&undefined!=vec3tangent){
+				intStrength=1+(4+(1./this.fltVelocity)/1500.)*ii;
+				vec3diff.copy(vec3prevTangent).sub(vec3tangent);
+				if(false==this.carModel.lstTrailerModels[ii].blnOnSattleHack){
+					this.carModel.lstTrailerModels[ii].rotation.y=intStrength*vec3diff.x;
+					this.carModel.lstTrailerModels[ii].rotation.x=intStrength*vec3diff.y;
+				}else{
+					//there can be option blnOnSattleHack but trailer will be decoupled during the game and the case when the trailer is on the car
+					if(0!=ii&&null!=this.carModel.lstTrailerModels[ii].frontTrolley){
+						
+						this.carModel.lstTrailerModels[ii].frontTrolley.rotation.y=0.5*intStrength*vec3diff.x;
+						this.carModel.lstTrailerModels[ii].frontTrolley.rotation.x=0.5*intStrength*vec3diff.y;
+						this.carModel.lstTrailerModels[ii].rotation.y=intStrength*vec3diff.x;
+						this.carModel.lstTrailerModels[ii].rotation.x=intStrength*vec3diff.y;
+					}
+				}
+				if(0==ii){
+					if(true==this.chkAutodrive.checked&&false==this.blnPause){
+						vec3prevTangent=this.lstVec3prevTangents[0];
+						vec3tangent=this.vec3tangent;
+						vec3diff.copy(vec3prevTangent).sub(vec3tangent);
+						var flt2dlength=Math.sqrt(vec3diff.x*vec3diff.x+vec3diff.z*vec3diff.y);
+						var fltTurningAngle;
+						if(undefined!=flt2dlength&&false==Number.isNaN(flt2dlength)){
+							if(vec3diff.x<0){
+								fltTurningAngle=50*flt2dlength;
+								if(fltTurningAngle>0.75*Math.PI)fltTurningAngle=0.75*Math.PI;
+							}else{
+								fltTurningAngle=-50*flt2dlength;
+								if(fltTurningAngle<-0.75*Math.PI)fltTurningAngle=-0.75*Math.PI;
+							}
+							this.carModel.steeringWheel.rotation.z=fltTurningAngle;
+							this.carModel.wheels.frontAngle=0.2*fltTurningAngle*180./Math.PI;
+							var objTurningWheel;
+							for(var jj=0;jj<this.carModel.lstTurningWheels.length;jj++){
+								objTurningWheel=this.carModel.lstTurningWheels[jj];
+								if(undefined!=objTurningWheel)objTurningWheel.rotation.y=this.carModel.wheels.frontAngle*Math.PI/180.;
+							}
+						}
+					}	
+				}
+			}
+			if(ii>0)this.setTrailerToHack(this,ii);
+		}
+	}
+};
+MatrixHardDrive.prototype.computeWheelsDiff=function(){
+	var wheel_fl=this.carModel.lstAveragingWheels[0];
+	var wheel_rl=this.carModel.lstAveragingWheels[2];
+	var wheel_fr=this.carModel.lstAveragingWheels[1];
+	var wheel_rr=this.carModel.lstAveragingWheels[3];
+	var vec3diameter0=new THREE.Vector3();
+	var vec3diameter1=new THREE.Vector3();
+	vec3diameter0.addVectors(wheel_fl.position,wheel_rr.position).multiplyScalar(.5);
+	vec3diameter1.addVectors(wheel_fr.position,wheel_rl.position).multiplyScalar(.5);
+	var vec3center=new THREE.Vector3();
+	vec3center.addVectors(vec3diameter0,vec3diameter1).multiplyScalar(.5);
+	var vec3diff=new THREE.Vector3();
+	vec3diff.subVectors(this.carModel.body.position,vec3center);
+	return vec3diff;
+};
+MatrixHardDrive.prototype.visualiseWorldVector=function(vec3localPoint,vec3worldVector,intVectorNumber){
+	var vec3vector=this.carModel.worldToLocal(vec3worldVector);
+	var lstPositions=[];
+	var lstColors=[];
+	if(undefined==this.lstLineVectorVisualisation[intVectorNumber]){
+		var geometry=new THREE.BufferGeometry();
+		var material=new THREE.LineBasicMaterial({vertexColors:true,morphTargets:true});
+		lstPositions.push(vec3localPoint.x,vec3localPoint.y,vec3localPoint.z);
+		lstColors.push(this.lstFltColors[intVectorNumber][0]);
+		lstColors.push(this.lstFltColors[intVectorNumber][1]);
+		lstColors.push(this.lstFltColors[intVectorNumber][2]);
+		lstPositions.push(vec3vector.x,vec3vector.y,vec3vector.z);
+		lstColors.push(this.lstFltColors[intVectorNumber][0]);
+		lstColors.push(this.lstFltColors[intVectorNumber][1]);
+		lstColors.push(this.lstFltColors[intVectorNumber][2]);
+		geometry.setAttribute("position",new THREE.Float32BufferAttribute(lstPositions,3));
+		geometry.setAttribute("color",new THREE.Float32BufferAttribute(lstColors,3));
+		geometry.computeBoundingSphere();
+		this.lstLineVectorVisualisation[intVectorNumber]=new THREE.Line(geometry,material);
+		this.carModel.add(this.lstLineVectorVisualisation[intVectorNumber]);
+		this.lstLineVectorVisualisation[intVectorNumber].position.z=-2.5;
+		this.lstLineVectorVisualisation[intVectorNumber].position.y=1;
+	}else{
+		lstPositions.push(vec3localPoint.x,vec3localPoint.y,vec3localPoint.z);
+		lstColors.push(this.lstFltColors[intVectorNumber][0]);
+		lstColors.push(this.lstFltColors[intVectorNumber][1]);
+		lstColors.push(this.lstFltColors[intVectorNumber][2]);
+		lstPositions.push(vec3vector.x,vec3vector.y,vec3vector.z);
+		lstColors.push(this.lstFltColors[intVectorNumber][0]);
+		lstColors.push(this.lstFltColors[intVectorNumber][1]);
+		lstColors.push(this.lstFltColors[intVectorNumber][2]);
+		//"geometry.update"
+		var arrPositions=this.lstLineVectorVisualisation[intVectorNumber].geometry.getAttribute("position").array;
+		var arrColors=this.lstLineVectorVisualisation[intVectorNumber].geometry.getAttribute("color").array;
+		for(var ii=0;ii<arrPositions.length;ii++)
+			arrPositions[ii]=lstPositions[ii];
+		for(var ii=0;ii<arrColors.length;ii++)
+			arrColors[ii]=lstColors[ii];
+		//var newRange=arrPositions.length;
+		//this.lstLineVectorVisualisation[intVectorNumber].geometry.setDrawRange(0,newRange);
+		this.lstLineVectorVisualisation[intVectorNumber].geometry.attributes.position.needsUpdate=true;
+		this.lstLineVectorVisualisation[intVectorNumber].geometry.attributes.color.needsUpdate=true;
+		this.lstLineVectorVisualisation[intVectorNumber].geometry.computeBoundingBox();
+		//"object.update"
+		this.lstLineVectorVisualisation[intVectorNumber]=new THREE.Line(this.lstLineVectorVisualisation[intVectorNumber].geometry,this.lstLineVectorVisualisation[intVectorNumber].material);//"mesh"
+	}
+};
+MatrixHardDrive.prototype.computeCarTangent=function(){
+	var vec3left=new THREE.Vector3();
+	var vec3right=new THREE.Vector3();
+	var wheel_fl=this.carModel.lstAveragingWheels[0];
+	var wheel_rl=this.carModel.lstAveragingWheels[2];
+	var wheel_fr=this.carModel.lstAveragingWheels[1];
+	var wheel_rr=this.carModel.lstAveragingWheels[3];
+	var vec3wheel_fl_position=this.carModel.localToWorld(wheel_fl.position.clone());
+	var vec3wheel_rl_position=this.carModel.localToWorld(wheel_rl.position.clone());
+	var vec3wheel_fr_position=this.carModel.localToWorld(wheel_fr.position.clone());
+	var vec3wheel_rr_position=this.carModel.localToWorld(wheel_rr.position.clone());
+	vec3left.subVectors(vec3wheel_fl_position,vec3wheel_rl_position);
+	vec3right.subVectors(vec3wheel_fr_position,vec3wheel_rr_position);
+	var vec3tangent=new THREE.Vector3();
+	var vec3average=new THREE.Vector3();
+	vec3left.normalize();
+	vec3right.normalize();
+	vec3average.addVectors(vec3left,vec3right).multiplyScalar(.5);
+	vec3tangent=vec3average.normalize();
+	var vec3wholeTangent=new THREE.Vector3();
+	vec3wholeTangent.copy(vec3tangent);
+	var theQuaternion=new THREE.Quaternion();
+	theQuaternion.setFromAxisAngle(new THREE.Vector3(0,1,0),this.carModel.wheels.frontAngle*Math.PI/180.);
+	vec3wholeTangent.applyQuaternion(theQuaternion);
+	vec3wholeTangent.normalize();
+	return vec3wholeTangent;
+};
+MatrixHardDrive.prototype.computeCarTangentInDeltaT=function(fltDeltaT){
+	var vec3left=new THREE.Vector3();
+	var vec3right=new THREE.Vector3();
+	var wheel_fl=this.carModel.lstAveragingWheels[0];
+	var wheel_rl=this.carModel.lstAveragingWheels[2];
+	var wheel_fr=this.carModel.lstAveragingWheels[1];
+	var wheel_rr=this.carModel.lstAveragingWheels[3];
+	var vec3wheel_fl_position=this.carModel.localToWorld(wheel_fl.position.clone());
+	var vec3wheel_rl_position=this.carModel.localToWorld(wheel_rl.position.clone());
+	var vec3wheel_fr_position=this.carModel.localToWorld(wheel_fr.position.clone());
+	var vec3wheel_rr_position=this.carModel.localToWorld(wheel_rr.position.clone());
+	vec3left.subVectors(vec3wheel_fl_position,vec3wheel_rl_position);
+	vec3right.subVectors(vec3wheel_fr_position,vec3wheel_rr_position);
+	var vec3tangent=new THREE.Vector3();
+	var vec3average=new THREE.Vector3();
+	vec3left.normalize();
+	vec3right.normalize();
+	vec3average.addVectors(vec3left,vec3right).multiplyScalar(.5);
+	vec3tangent=vec3average.normalize();
+	//this.visualiseWorldVector(this.carModel.position,vec3tangent.clone(),0);
+	var vec3wholeTangent=new THREE.Vector3();
+	vec3wholeTangent.copy(vec3tangent);
+	var fltDiff=30*this.fltVelocity*fltDeltaT*this.carModel.wheels.frontAngle*Math.PI/180.;
+	if(fltDiff>0)
+		fltDiff=Math.max(0.5*Math.PI/180.,fltDiff);
+	if(fltDiff<0)
+		fltDiff=Math.min(-0.5*Math.PI/180.,fltDiff);
+	if(0==fltDiff)fltDiff=0.;
+	var theQuaternion=new THREE.Quaternion();
+	theQuaternion.setFromAxisAngle(new THREE.Vector3(0,1,0),this.carModel.wheels.frontAngle*Math.PI/180.);
+	vec3wholeTangent.applyQuaternion(theQuaternion);
+	vec3wholeTangent.normalize();
+	//this.visualiseWorldVector(this.carModel.position,vec3wholeTangent.clone(),1);
+	var theQuaternion=new THREE.Quaternion();
+	theQuaternion.setFromAxisAngle(new THREE.Vector3(0,1,0),fltDiff);
+	vec3tangent.applyQuaternion(theQuaternion);
+	vec3tangent.normalize();
+	//this.visualiseWorldVector(this.carModel.position,vec3tangent.clone(),2);
+	if(0==fltDiff)return[vec3tangent,null];
+	else return[vec3tangent,fltDiff];
+};
+MatrixHardDrive.prototype.setVelocityLimit=function(){
+	if(this.intGear<0)this.intGearSign=-1;
+	if(this.intGear>=0)this.intGearSign=1;
+	switch(this.intGear){
+		case -1:this.fltVelocityLimit=-0.075;break;
+		case 0:this.fltVelocityLimit=0.;break;
+		case 1:this.fltVelocityLimit=0.075;break;
+		case 2:this.fltVelocityLimit=0.1;break;
+		case 3:this.fltVelocityLimit=0.15;break;
+		case 4:this.fltVelocityLimit=0.20;break;
+		case 5:this.fltVelocityLimit=0.30;break;
+	}
+};
+MatrixHardDrive.prototype.gearUp=function(){
+	if(this.intGear<5)this.intGear++;
+	//console.log("this.intGear="+this.intGear);
+	this.setVelocityLimit();
+};
+MatrixHardDrive.prototype.gearDown=function(){
+	if(this.intGear>-1)this.intGear--;
+	//console.log("this.intGear="+this.intGear);
+	this.setVelocityLimit();
+};
+MatrixHardDrive.prototype.setWheelsFrontAngleDegrees=function(fltFrontAngleDegrees){
+	if(fltFrontAngleDegrees>60)fltFrontAngleDegrees=60;
+	if(fltFrontAngleDegrees<-60)fltFrontAngleDegrees=-60;
+	this.carModel.wheels.frontAngle=fltFrontAngleDegrees;
+	this.carModel.steeringWheel.rotation.z=this.fltJoystickToVirtualSteeringWheel*fltFrontAngleDegrees/this.fltSteeringWheelToWheels;
+};
+MatrixHardDrive.prototype.setSteeringWheelAngleRadians=function(fltFrontAngleRadians){
+	if(fltFrontAngleRadians*180./Math.PI>60)fltFrontAngleRadians=60*Math.PI/180;
+	if(fltFrontAngleRadians*180./Math.PI<-60)fltFrontAngleRadians=-60*Math.PI/180;
+	this.carModel.steeringWheel.rotation.z=fltFrontAngleRadians;
+	this.carModel.wheels.frontAngle=fltFrontAngleRadians*180./Math.PI;
+};
+MatrixHardDrive.prototype.computeWheelsCenter=function(){
+	var wheel_fl=this.carModel.lstAveragingWheels[0];
+	var wheel_rl=this.carModel.lstAveragingWheels[2];
+	var wheel_fr=this.carModel.lstAveragingWheels[1];
+	var wheel_rr=this.carModel.lstAveragingWheels[3];
+	var vec3diameter0=new THREE.Vector3();
+	var vec3diameter1=new THREE.Vector3();
+	vec3diameter0.addVectors(wheel_fl.position,wheel_rr.position).multiplyScalar(.5);
+	vec3diameter1.addVectors(wheel_fr.position,wheel_rl.position).multiplyScalar(.5);
+	var vec3center=new THREE.Vector3();
+	vec3center.addVectors(vec3diameter0,vec3diameter1).multiplyScalar(.5);
+	return vec3center;
+};
+MatrixHardDrive.prototype.positionCarOnTheSurface=function(fltDeltaT,blnTransitional){
+	var lstPrevWheelYpositions=[];
+	if(true==blnTransitional){
+		var lstPositionToUpdate=this.regions.positionToUpdate(this.vec3position);
+		this.regions.changeRegion(this.vec3position);
+		if(0!=lstPositionToUpdate[0]){
+			this.vec3position.x=-1.*this.vec3position.x;
+		}
+		if(0!=lstPositionToUpdate[1]){
+			this.vec3position.z=-1.*this.vec3position.z;
+		}
+	}
+	var lstIntersections,landscapeMesh,vec3point,flty;
+	var wheel,grid,vec3localPoint;
+	var vec3diff=this.computeWheelsDiff();
+	var boxSelectorMesh=this.regions.lstBoxSelectors[this.regions.intActualRegion].mesh;
+	grid=this.regions.lstGrids[this.regions.intActualRegion];
+	var vec3gridPosition=new THREE.Vector3();
+	var lstNewPositions=[];
+	var vec3newPosition;
+	var blnSuitableIntersectionFound;
+	var lstAveragingWheels=[];
+	for(var ii=0;ii<this.carModel.lstAveragingWheels.length;ii++){
+		lstAveragingWheels.push(this.carModel.lstAveragingWheels[ii]);
+	}
+	for(var jj=0;jj<this.carModel.lstTrailerModels.length;jj++){
+		for(var ii=0;ii<this.carModel.lstTrailerModels[jj].lstAveragingWheels.length;ii++){
+			lstAveragingWheels.push(this.carModel.lstTrailerModels[jj].lstAveragingWheels[ii]);
+		}
+	}
+	for(var jj=0;jj<lstAveragingWheels.length;jj++){
+		lstPrevWheelYpositions.push(lstAveragingWheels[jj].position.y);
+	}
+	var intTransationalX=0,intTransationalZ=0;
+	var intMultiplierX=1,intMultiplierZ=1;
+	for(var ii=0;ii<lstAveragingWheels.length;ii++){
+		blnSuitableIntersectionFound=false;
+		wheel=lstAveragingWheels[ii];
+		vec3point=this.carModel.localToWorld(wheel.vec3initialPosition.clone());
+		wheel.raycaster.ray.direction.set(0,-1,0);
+		intTransationalX=0;intTransationalZ=0;
+		intMultiplierX=1;intMultiplierZ=1;
+		if(true==blnTransitional)
+			for(intTransationalX=0;intTransationalX<50;intTransationalX+=1){
+				for(intTransationalZ=0;intTransationalZ<50;intTransationalZ+=1){
+					wheel.raycaster.ray.origin.set(vec3point.x+intMultiplierX*intTransationalX,vec3point.y+100000,vec3point.z+intMultiplierZ*intTransationalZ);
+					lstIntersections=wheel.raycaster.intersectObjects(grid.children,true);
+					intMultiplierX=-1;
+					intMultiplierZ=1;
+					if(lstIntersections.length>0)break;
+					wheel.raycaster.ray.origin.set(vec3point.x+intMultiplierX*intTransationalX,vec3point.y+100000,vec3point.z+intMultiplierZ*intTransationalZ);
+					lstIntersections=wheel.raycaster.intersectObjects(grid.children,true);
+					intMultiplierX=-1;
+					intMultiplierZ=-1;
+					if(lstIntersections.length>0)break;
+					wheel.raycaster.ray.origin.set(vec3point.x+intMultiplierX*intTransationalX,vec3point.y+100000,vec3point.z+intMultiplierZ*intTransationalZ);
+					lstIntersections=wheel.raycaster.intersectObjects(grid.children,true);
+					intMultiplierX*=1;
+					intMultiplierZ*=-1;
+					if(lstIntersections.length>0)break;
+					wheel.raycaster.ray.origin.set(vec3point.x+intMultiplierX*intTransationalX,vec3point.y+100000,vec3point.z+intMultiplierZ*intTransationalZ);
+					lstIntersections=wheel.raycaster.intersectObjects(grid.children,true);
+					intMultiplierX*=1;
+					intMultiplierZ*=1;
+					if(lstIntersections.length>0)break;
+				}
+				if(lstIntersections.length>0)break;
+			}
+		else{
+			wheel.raycaster.ray.origin.set(vec3point.x,vec3point.y+this.fltStandardRaycastHeight,vec3point.z);
+			lstIntersections=wheel.raycaster.intersectObjects(grid.children,true);
+		}
+		if(0==lstIntersections.length){
+			return null;
+		}
+			if(0!=lstIntersections.length){
+				flty=lstIntersections[0].point.y;
+				if(Math.abs(flty-wheel.position.y)>this.fltMaximalJumpHeight){
+					for(var jj=0;jj<lstIntersections.length;jj++){
+						flty=lstIntersections[jj].point.y;
+						if(Math.abs(flty-wheel.position.y)<this.fltMaximalJumpHeight){
+							blnSuitableIntersectionFound=true;
+							break;
+						}
+					}
+					if(false==blnSuitableIntersectionFound){
+						for(var jj=0;jj<lstAveragingWheels.length;jj++){
+							lstAveragingWheels[jj].position.y=lstPrevWheelYpositions[jj];
+							lstAveragingWheels[jj].position.y=lstPrevWheelYpositions[jj];
+							lstAveragingWheels[jj].position.y=lstPrevWheelYpositions[jj];
+							lstAveragingWheels[jj].position.y=lstPrevWheelYpositions[jj];
+						}
+						return;
+					}
+				}
+				vec3point.y=flty;
+				vec3point.x+=intMultiplierX*intTransationalX;
+				vec3point.z+=intMultiplierZ*intTransationalZ;
+				vec3localPoint=this.carModel.worldToLocal(vec3point.clone());
+				wheel.position.y=vec3localPoint.y+this.carModel.fltWheelRadius;
+				vec3newPosition=new THREE.Vector3();	
+				vec3newPosition.x=vec3localPoint.x;
+				vec3newPosition.y=vec3localPoint.y+this.carModel.fltWheelRadius;
+				if(vec3newPosition.y-wheel.position.y>this.carModel.fltMaxSpringLength)
+					vec3newPosition.y=wheel.position.y+this.carModel.fltMaxSpringLength;
+				if(vec3newPosition.y-wheel.position.y<-this.carModel.fltMaxSpringLength)
+					vec3newPosition.y=wheel.position.y-this.carModel.fltMaxSpringLength;
+				vec3newPosition.z=vec3localPoint.z;
+				lstNewPositions.push(vec3newPosition);
+			}
+	}
+	var vec3tangent,fltDiff
+	var lstVectors=this.computeCarTangentInDeltaT(fltDeltaT);
+	vec3tangent=lstVectors[0];
+	fltDiff=lstVectors[1];
+	if(null!=fltDiff&&Math.abs(this.carModel.wheels.frontAngle)>this.fltEps&&Math.abs(this.fltVelocity)>this.fltEps){
+		if(Math.abs(this.carModel.wheels.frontAngle)>Math.abs(fltDiff*180./Math.PI)){
+			this.setWheelsFrontAngleDegrees(this.carModel.wheels.frontAngle-this.intGearSign*fltDiff*180./Math.PI);
+		}else this.setWheelsFrontAngleDegrees(0.);
+		this.vec3tangent.copy(vec3tangent);
+	}
+	return vec3diff;
+};
+MatrixHardDrive.prototype.resetCarBodyPositionAndRotation=function(){
+	this.carModel.body.rotation.x=0;
+	this.carModel.body.rotation.y=0;
+	this.carModel.body.rotation.z=0;
+	for(var ii=0;ii<this.carModel.lstAveragingWheels.length;ii++){
+		this.carModel.lstAveragingWheels[ii].position.x=this.carModel.lstVec3raycastersInitialPositions[ii].x;
+		this.carModel.lstAveragingWheels[ii].position.y=this.carModel.lstVec3raycastersInitialPositions[ii].y;
+		this.carModel.lstAveragingWheels[ii].position.z=this.carModel.lstVec3raycastersInitialPositions[ii].z;
+	}
+	var vec3prevTangent=new THREE.Vector3();
+	vec3prevTangent.copy(this.vec3tangent);
+	this.vec3tangent=this.computeCarTangent();
+	var vec3tangent=new THREE.Vector3();
+	vec3tangent.copy(this.vec3tangent);
+	var vec3diff=new THREE.Vector3();
+	vec3diff.copy(vec3prevTangent).sub(vec3tangent);
+	var vec3center_local=this.computeWheelsCenter();
+	var vec3center_global=this.carModel.localToWorld(vec3center_local.clone());
+	var fltycenterdiff_global=vec3center_global.y-this.carModel.localToWorld(this.carModel.initialVec3wheelsCenter.clone()).y;
+	var fltycenterdiff_local=vec3center_local.y-this.carModel.initialVec3wheelsCenter.y;
+	this.vec3position.y+=fltycenterdiff_global;
+	var wheel;
+	for(var ii=0;ii<this.carModel.lstAveragingWheels.length;ii++){
+		wheel=this.carModel.lstAveragingWheels[ii];
+		wheel.position.y-=fltycenterdiff_local;
+	}
+};
+MatrixHardDrive.prototype.correctCarBodyRotation=function(){
+	var wheel_fl=this.carModel.lstAveragingWheels[0];
+	var wheel_rl=this.carModel.lstAveragingWheels[2];
+	var wheel_fr=this.carModel.lstAveragingWheels[1];
+	var wheel_rr=this.carModel.lstAveragingWheels[3];
+	var vec3front=new THREE.Vector3();
+	vec3front.subVectors(wheel_fl.position,wheel_fr.position);
+	var vec3frontInitial=new THREE.Vector3();
+	vec3frontInitial.subVectors(wheel_fl.vec3initialPosition,wheel_fr.vec3initialPosition);
+	var vec3rear=new THREE.Vector3();
+	vec3rear.subVectors(wheel_rl.position,wheel_rr.position);
+	var vec3rearInitial=new THREE.Vector3();
+	vec3rearInitial.subVectors(wheel_rl.vec3initialPosition,wheel_rr.vec3initialPosition);
+	var vec3average=new THREE.Vector3();
+	vec3average.addVectors(vec3front,vec3rear).multiplyScalar(.5);
+	var vec3averageInitial=new THREE.Vector3();
+	vec3averageInitial.addVectors(vec3frontInitial,vec3rearInitial).multiplyScalar(.5);
+	var fltSignZ=(vec3average.y>=vec3averageInitial.y)?-1.:1.;
+	this.carModel.body.rotation.z=fltSignZ*vec3average.angleTo(vec3averageInitial);
+	var vec3left=new THREE.Vector3();
+	vec3left.subVectors(wheel_fl.position,wheel_rl.position);
+	var vec3right=new THREE.Vector3();
+	vec3right.subVectors(wheel_fr.position,wheel_rr.position);
+	var vec3leftInitial=new THREE.Vector3();
+	vec3leftInitial.subVectors(wheel_fl.vec3initialPosition,wheel_rl.vec3initialPosition);
+	var vec3rightInitial=new THREE.Vector3();
+	vec3rightInitial.subVectors(wheel_fr.vec3initialPosition,wheel_rr.vec3initialPosition);
+	vec3average=new THREE.Vector3();
+	vec3average.addVectors(vec3right,vec3left).multiplyScalar(.5);
+	vec3averageInitial=new THREE.Vector3();
+	vec3averageInitial.addVectors(vec3rightInitial,vec3leftInitial).multiplyScalar(.5);
+	var fltSignX=(vec3average.y>=vec3averageInitial.y)?1.:-1.;
+	this.carModel.body.rotation.x=fltSignX*vec3average.angleTo(vec3averageInitial);
+};
+MatrixHardDrive.prototype.resetTrailerBodyPositionAndRotation=function(intTrailer){
+	this.carModel.lstTrailerModels[intTrailer].body.rotation.x=0;
+	this.carModel.lstTrailerModels[intTrailer].body.rotation.y=0;
+	this.carModel.lstTrailerModels[intTrailer].body.rotation.z=0;
+	for(var ii=0;ii<this.carModel.lstTrailerModels[intTrailer].lstAveragingWheels.length;ii++){
+		this.carModel.lstTrailerModels[intTrailer].lstAveragingWheels[ii].position.x=this.carModel.lstVec3raycastersInitialPositions[ii].x;
+		this.carModel.lstTrailerModels[intTrailer].lstAveragingWheels[ii].position.y=this.carModel.lstVec3raycastersInitialPositions[ii].y;
+		this.carModel.lstTrailerModels[intTrailer].lstAveragingWheels[ii].position.z=this.carModel.lstVec3raycastersInitialPositions[ii].z;
+	}
+};
+MatrixHardDrive.prototype.correctTrailerBodyRotation=function(intTrailer){
+	var wheel_fl=this.carModel.lstTrailerModels[intTrailer].lstAveragingWheels[0];
+	var wheel_rl=this.carModel.lstTrailerModels[intTrailer].lstAveragingWheels[2];
+	var wheel_fr=this.carModel.lstTrailerModels[intTrailer].lstAveragingWheels[1];
+	var wheel_rr=this.carModel.lstTrailerModels[intTrailer].lstAveragingWheels[3];
+	var vec3front=new THREE.Vector3();
+	vec3front.subVectors(wheel_fl.position,wheel_fr.position);
+	var vec3frontInitial=new THREE.Vector3();
+	vec3frontInitial.subVectors(wheel_fl.vec3initialPosition,wheel_fr.vec3initialPosition);
+	var vec3rear=new THREE.Vector3();
+	vec3rear.subVectors(wheel_rl.position,wheel_rr.position);
+	var vec3rearInitial=new THREE.Vector3();
+	vec3rearInitial.subVectors(wheel_rl.vec3initialPosition,wheel_rr.vec3initialPosition);
+	var vec3average=new THREE.Vector3();
+	vec3average.addVectors(vec3front,vec3rear).multiplyScalar(.5);
+	var vec3averageInitial=new THREE.Vector3();
+	vec3averageInitial.addVectors(vec3frontInitial,vec3rearInitial).multiplyScalar(.5);
+	var fltSignZ=(vec3average.y>=vec3averageInitial.y)?-1.:1.;
+	this.carModel.lstTrailerModels[intTrailer].body.rotation.z=fltSignZ*vec3average.angleTo(vec3averageInitial);
+	var vec3left=new THREE.Vector3();
+	vec3left.subVectors(wheel_fl.position,wheel_rl.position);
+	var vec3right=new THREE.Vector3();
+	vec3right.subVectors(wheel_fr.position,wheel_rr.position);
+	var vec3leftInitial=new THREE.Vector3();
+	vec3leftInitial.subVectors(wheel_fl.vec3initialPosition,wheel_rl.vec3initialPosition);
+	var vec3rightInitial=new THREE.Vector3();
+	vec3rightInitial.subVectors(wheel_fr.vec3initialPosition,wheel_rr.vec3initialPosition);
+	vec3average=new THREE.Vector3();
+	vec3average.addVectors(vec3right,vec3left).multiplyScalar(.5);
+	vec3averageInitial=new THREE.Vector3();
+	vec3averageInitial.addVectors(vec3rightInitial,vec3leftInitial).multiplyScalar(.5);
+	var fltSignX=(vec3average.y>=vec3averageInitial.y)?1.:-1.;
+	this.carModel.lstTrailerModels[intTrailer].body.rotation.x=fltSignX*vec3average.angleTo(vec3averageInitial);
+};
+MatrixHardDrive.prototype.correctCarPositionOnTheSurface=function(vec3diff){
+	if(null==vec3diff)return;
+	if(this.vec3lastCorrectionPosition.distanceToSquared(this.vec3position)>this.fltLastCorrectionPosition){
+		this.vec3lastCorrectionPosition=this.vec3position.clone();
+	}else return;
+	var vec3center_local=this.computeWheelsCenter();
+	var vec3center_global=this.carModel.localToWorld(vec3center_local.clone());
+	var fltycenterdiff_global=vec3center_global.y-this.carModel.localToWorld(this.carModel.initialVec3wheelsCenter.clone()).y;
+	var fltycenterdiff_local=vec3center_local.y-this.carModel.initialVec3wheelsCenter.y;
+	this.vec3position.y+=fltycenterdiff_global;
+	var wheel;
+	for(var ii=0;ii<this.carModel.lstAveragingWheels.length;ii++){
+		wheel=this.carModel.lstAveragingWheels[ii];
+		wheel.position.y-=fltycenterdiff_local;
+	}
+	this.correctCarBodyRotation();
+	var vec3tangent=this.computeCarTangent();
+	var vec3tangentDiff=new THREE.Vector3();
+	vec3tangentDiff.subVectors(vec3tangent,this.vec3tangent);
+	this.vec3tangent.x+=vec3tangentDiff.x;
+	this.vec3tangent.y+=vec3tangentDiff.y;
+	this.vec3tangent.z+=vec3tangentDiff.z;
+};
+MatrixHardDrive.prototype.addJoystick=function(joystick){
+	var divJoysticks=document.getElementById("divJoysticks");
+	this.objJoysticks[joystick.index]=joystick;
+	this.objJoysticks.intConnectedJoystics++;
+	var divJoystick=document.createElement("div");
+	divJoystick.id="joystick_"+joystick.index;
+	var strJoystick=document.createTextNode("Joystick: ");
+	divJoystick.appendChild(strJoystick);
+	divJoysticks.appendChild(divJoystick);
+	var spnAxes=document.createElement("span");
+	spnAxes.id=divJoystick.id+"_axes";
+	spnAxes.appendChild(document.createTextNode("Axes: "));
+	var prgAxe;
+	for(var ii=0;ii<joystick.axes.length;ii++){
+		prgAxe=document.createElement("progress");
+		prgAxe.id=spnAxes.id+"_"+ii;
+		prgAxe.max=2;
+		prgAxe.value=1;
+		spnAxes.appendChild(document.createTextNode(" "));
+		spnAxes.appendChild(prgAxe);
+		spnAxes.appendChild(document.createTextNode(" "));
+	}
+	divJoystick.appendChild(spnAxes);
+	var spnButtons=document.createElement("span");
+	spnButtons.id=divJoystick.id+"_buttons";
+	spnButtons.appendChild(document.createTextNode("Buttons: "));
+	var spnButton;
+	for(var ii=0;ii<joystick.buttons.length;ii++){
+		spnButton=document.createElement("span");
+		spnButton.innerHTML=" "+ii+" ";
+		spnButton.id=spnButtons.id+"_"+ii;
+		spnButtons.appendChild(spnButton);
+	}
+	divJoystick.appendChild(spnButtons);
+	divJoysticks.style.display="";
+};
+MatrixHardDrive.prototype.removeJoystick=function(joystick){
+	var divJoysticks=document.getElementById("divJoysticks");
+	var divJoystick=document.getElementById("joystick_"+joystick.index);
+	divJoysticks.removeChild(divJoystick);
+	delete this.objJoysticks[joystick.index];
+	this.objJoysticks.intConnectedJoystics--;
+	if(0==this.objJoysticks.intConnectedJoystics)
+		divJoysticks.style.display="none";
+};
+MatrixHardDrive.prototype.onGamepadConnected=function(evtGamepad){
+	var that=window.mhd;
+	that.addJoystick(evtGamepad.gamepad);
+};
+MatrixHardDrive.prototype.onGamepadDisconnected=function(evtGamepad){
+	var that=window.mhd;
+	that.removeJoystick(evtGamepad.gamepad);
+};
+MatrixHardDrive.prototype.updateJoysticksInfo=function(){
+	if(this.objJoysticks.intConnectedJoystics>0){
+		this.updateJoysticks();
+	}
+	var ii=0;
+	var jj;
+	var divJoystick,spnAxes,prgAxe,spnButtons,spnButton;
+	var objJoystick,objGamepadButton,fltValue,blnPressed=false;
+	for(jj in this.objJoysticks){
+		if("intConnectedJoystics"==jj)continue;
+		objJoystick=this.objJoysticks[jj];
+		divJoystick=document.getElementById("joystick_"+jj);
+		spnAxes=document.getElementById(divJoystick.id+"_axes");
+		for(ii=0;ii<objJoystick.axes.length;ii++){
+			prgAxe=document.getElementById(spnAxes.id+"_"+ii);
+			prgAxe.value=objJoystick.axes[ii]+1;
+			this.joystickAxesValueChanged(ii,objJoystick.axes[ii]);
+		}
+		spnButtons=document.getElementById(divJoystick.id+"_buttons");
+		for(ii=0;ii<objJoystick.buttons.length;ii++){
+			objGamepadButton=objJoystick.buttons[ii];
+			if(typeof(objGamepadButton)=="object"){
+				blnPressed=objGamepadButton.pressed;
+				fltValue=objGamepadButton.value;
+			}else blnPressed=objGamepadButton==1.0;
+			spnButton=document.getElementById(spnButtons.id+"_"+ii);
+			if(true==blnPressed){
+				if(null!=spnButton)
+					spnButton.innerHTML="["+ii+"]";
+				this.joystickButtonDown(ii);
+			}else{
+				if(null!=spnButton)
+					spnButton.innerHTML=" "+ii+" ";
+				this.joystickButtonCheck(ii);
+			}
+		}
+	}
+};
+MatrixHardDrive.prototype.updateJoysticks=function(){
+	var joysticks=navigator.getGamepads?navigator.getGamepads():(navigator.webkitGetGamepads?navigator.webkitGetGamepads():[]);
+	for(var ii=0;ii<joysticks.length;ii++){
+		if(joysticks[ii]){
+			if(joysticks[ii].index in this.objJoysticks){
+				this.objJoysticks[joysticks[ii].index]=joysticks[ii];
+			}else{
+				this.addJoystick(joysticks[ii]);
+			}
+		}
+	}
+};
+MatrixHardDrive.prototype.additionalLoopFunction=function(currentFrameTime){
+	this.intActiveComputerCounter++;
+	this.intActiveComputerCounter%=this.intActiveComputerRefreshRate;
+	this.intInactiveComputersCounter++;
+	this.intInactiveComputersCounter%=this.intInactiveComputerRefreshRate;
+	for(var intComputer=0;intComputer<this.lstComputers.length;intComputer++){
+		if(intComputer==this.intActiveComputer){
+			if(0==this.intActiveComputerCounter)
+				this.lstComputers[intComputer].loopFunction(currentFrameTime);
+		}else{
+			if(0==this.intInactiveComputerCounter)
+				this.lstComputers[intComputer].loopFunction(currentFrameTime);
+		}
+	}
+
+};
+MatrixHardDrive.prototype.render=function(){
+	var that=window.mhd;
+	document.title=that.intGear+" : "+that.fltVelocity;
+	that.testChecks();
+	if(true==that.chkEditorMode.checked){
+		that.controls.update();
+	}
+	var fltTime=performance.now();
+	that.additionalLoopFunction(fltTime);
+	var fltDelta=fltTime-that.fltPrevTime;
+	var fltDeltaT=fltDelta/1000.;
+	that.playerHeadMovement(fltDelta);
+	if(that.objJoysticks.intConnectedJoystics>0){
+		that.updateJoysticksInfo();
+	}
+	if(true==that.chkAutodrive.checked&&false==that.blnPause){
+		that.fltCurveT+=that.fltVelocity;
+		if(true==that.regions.transitionPosition(that.vec3position)&&false==that.regions.blnTransitionDone){
+			//console.log("|=>transitionPosition "+that.vec3position+ " "+that.regions.blnTransitionDone);
+		}
+		if(that.fltCurveT!=that.fltCurveT%1){
+			that.regions.changeRegion(that.vec3position);
+		}
+		that.fltCurveT=that.fltCurveT%1;
+		that.vec3prevPosition.copy(that.vec3position);
+		that.vec3position.copy(that.regions.internationalCurve.getPointAt(that.fltCurveT,that.regions.lstLandscapeObjects[that.regions.intActualRegion].mesh));
+	}
+	if(false==that.chkAutodrive.checked){
+		that.vec3prevPosition.copy(that.vec3position);
+		if(true==that.regions.transitionPosition(that.vec3position))
+			that.positionCarOnTheSurface(fltDeltaT,true);
+		that.vec3position.x+=that.fltVelocity*that.vec3tangent.x;
+		that.vec3position.y+=that.fltVelocity*that.vec3tangent.y;
+		that.vec3position.z+=that.fltVelocity*that.vec3tangent.z;
+	}
+	if(false==that.regions.transitionPosition(that.vec3position)&&true==that.regions.blnTransitionDone){
+		that.regions.blnTransitionDone=false;
+	}
+	if(true==that.chkAutodrive.checked&&false==that.blnPause){
+		that.lstVec3prevTangents.push(that.vec3tangent.clone());
+		that.vec3tangent.copy(that.regions.internationalCurve.getTangentAt(that.fltCurveT,that.regions.lstLandscapeObjects[that.regions.intActualRegion].mesh));
+		that.propagateTrailersRotationsAutodrive();
+	}
+	if(true==that.chkAutodrive.checked){
+		that.fltVelocity-=that.vec3tangent.y*0.0000001*fltDelta;
+		that.fltVelocity=Math.max(0.00004,Math.min(0.0002,that.fltVelocity));
+		that.fltVelocity*=1.5;
+	}else{
+		if(false==that.blnHandbrake){
+			if(Math.abs(that.vec3tangent.y)>Math.tan(Math.PI/36.))
+				that.fltVelocity-=that.vec3tangent.y*that.fltDeceleratingMass*fltDelta;
+		}else
+			that.fltVelocity-=that.fltArrowVelocityLong;
+		if(that.fltVelocity<0&&true==that.blnHandbrake)that.fltVelocity=0;
+		var vec3diff;
+		vec3diff=that.positionCarOnTheSurface(fltDeltaT,false);
+		if(that.fltVelocityLimit>=0){
+			if(that.fltVelocity>that.fltVelocityLimit)that.fltVelocity=that.fltVelocityLimit;
+		}else{
+			if(that.fltVelocity<that.fltVelocityLimit)that.fltVelocity=that.fltVelocityLimit;
+		}
+		that.lstVec3prevTangents.push(that.vec3tangent.clone());
+		that.propagateTrailersRotations();
+	}
+	that.vec3gridTangent.copy(that.regions.computeGridTangent(that.vec3tangent,that.regions.intActualRegion));
+	that.train.lookAt(that.vec3gridTangent);
+	if(undefined!=that.carModel){
+		if(undefined!=vec3diff)
+			that.correctCarPositionOnTheSurface(vec3diff);
+		if(true==that.blnComputeUpVector){
+			that.carModel.up.copy(that.regions.internationalCurve.getNormalAt(that.fltCurveT,that.regions.lstLandscapeObjects[that.regions.intActualRegion].mesh));
+			that.carModel.lookAt(that.vec3lookAt.copy(that.vec3position).sub(that.vec3tangent));
+		}
+		if(false==that.chkEditorMode.checkbox){
+			that.carModel.getWorldPosition(that.vec3carWorldPosition);
+			that.controls.target.copy(that.vec3carWorldPosition);
+		}
+	}
+	that.lstRegionsToUpdate=that.regions.needsUpdate(that.vec3position);
+	if(null!=that.lstRegionsToUpdate){
+		if(-1==that.regions.coordsLoaded(that.lstRegionsToUpdate[1])){
+			that.regions.update(that.lstRegionsToUpdate,that.vec3position);
+		}
+	}
+	for(var ii=0;ii<that.regions.lstLoadedRegionsCoords.length;ii++){
+		that.gridPosition.copy(that.regions.computeGridPosition(that.vec3position,ii));
+		that.regions.lstGrids[ii].position.copy(that.gridPosition);
+	}
+
+	if(true==that.chkAutodrive.checked&&false==that.blnPause){
+		for(var ii=0;ii<that.lstWheels.length;ii++){
+			for(var jj=0;jj<that.lstWheels[ii].children.length;jj++){
+				that.lstWheels[ii].children[jj].rotation.x=-1.*(fltTime*Math.PI)%2*Math.PI;
+			}
+		}
+	}
+	if(false==that.chkAutodrive.checked){
+		for(var ii=0;ii<that.lstWheels.length;ii++){
+			for(var jj=0;jj<that.lstWheels[ii].children.length;jj++){
+				that.lstWheels[ii].children[jj].rotation.x=-0.1*that.fltVelocity*fltTime*Math.PI;
+			}
+		}
+		var objTurningWheel;
+		for(var jj=0;jj<that.carModel.lstTurningWheels.length;jj++){
+			objTurningWheel=that.carModel.lstTurningWheels[jj];
+				if(undefined!=objTurningWheel)objTurningWheel.rotation.y=that.carModel.wheels.frontAngle*Math.PI/180.;
+		}
+	}
+	if(true==that.chkEditorMode.checked){
+		that.camera.updateMatrixWorld();
+		that.editorRaycaster.setFromCamera(that.vec2mouse,that.camera);
+		var lstIntersections=that.editorRaycaster.intersectObjects(that.regions.lstGrids[that.regions.intActualRegion].children,true);
+		if(true==that.blnShiftPressed){
+			for(var ii=0;ii<lstIntersections.length;ii++){
+				if(null==that.intersectedObject||false==that.intersectedObject.blnSelectWhole||true==that.intersectedObject.blnSelectVertices||that.intersectedObject.mesh!=lstIntersections[0].object){
+				if(null!=that.intersectedObject){
+					that.unselectObjectAction(true);
+				}
+				if(undefined!=lstIntersections[0].object.material){
+					that.intersectedObject=that.regions.getMatrixHardDriveObject(lstIntersections[0].object);
+					if(null==that.intersectedObject)return;
+					that.intersectedObject.setCurrentColorHex();
+					that.intersectedObject.setCurrentFltOpacity();
+					that.intersectedObject.setCurrentBlnTransparency();
+					if(true==that.intersectedObject.blnSelectWhole){
+						that.intersectedObject.setColorHex(0x0000ff);
+						that.intersectedObject.setFltOpacity(0.3);
+						that.intersectedObject.setBlnTransparency(true);
+
+						that.selectObjectAction(0);
+					}else{
+						if(false==that.intersectedObject.blnSelectVertices){
+							that.intersectedObject.setColorHex(0x0000ff);
+							that.intersectedObject.setFltOpacity(0.3);
+							that.intersectedObject.setBlnTransparency(true);
+							var intersect=lstIntersections[0];
+							that.intersectedFace=intersect.face;
+							that.intIntersectedFaceIndex=intersect.faceIndex;
+							that.updateTriangleSelector();
+							that.selectObjectAction(1);
+						}else{
+							that.intersectedObject.setColorHex(0x0000ff);
+							that.intersectedObject.setFltOpacity(0.3);
+							that.intersectedObject.setBlnTransparency(true);
+							that.intersectedObject.mesh.material.wireframe=true;
+							var intersect=lstIntersections[0];
+							that.vec3intersectedPoint=intersect.point;
+							that.intersectedFace=intersect.face;
+							that.intIntersectedFaceIndex=intersect.faceIndex;
+							that.updateSphereSelector(true);
+							that.updateTriangleSelector();
+							that.selectObjectAction(2);
+						}
+					}
+				}
+				}else{//!(null==that.intersectedObject||that.intersectedObject.mesh!=lstIntersections[0].object)
+					if(null!=that.intersectedObject){
+						that.intersectedObject.setColorHex(0x0000ff);
+						that.intersectedObject.setFltOpacity(0.3);
+						that.intersectedObject.setBlnTransparency(true);
+					}
+				}
+			}
+		}else{//false==that.blnShiftPressed
+			that.selectPoint(lstIntersections);
+			if(null!=that.intersectedObject){
+				if(true==that.intersectedObject.blnSelectWhole){
+					that.unselectObjectAction(false);
+				}else{
+					that.unselectObjectAction(false);
+				}
+			}
+		}
+	}
+	that.renderer.render(that.scene,that.camera);
+	that.fltPrevTime=fltTime;
+};
+MatrixHardDrive.prototype.saveMap=function(){
+	alert("Save Map");
+	var strContent=this.regions.saveRegionsToString();
+	this.linkSaveFile(strContent,"map.txt","save");
+};
+MatrixHardDrive.prototype.loadMap=function(){
+	alert("Load Map");
+	var that=window.mhd;
+	this.openFile(that.loadMapFile);
+};
+MatrixHardDrive.prototype.resetCarOnSurface=function(){
+	var that=window.mhd;
+	if(undefined!=that.carModel){
+		that.resetCarBodyPositionAndRotation();
+		for(var ii=0;ii<that.carModel.lstTrailerModels.length;ii++){
+			that.resetTrailerBodyPositionAndRotation(ii);
+		}
+	}
+};
+MatrixHardDrive.prototype.loadModelObjects=function(){
+	alert("Load Trees");
+	var that=window.mhd;
+	this.openFile(that.loadModelObjectsFromMapFile);
+};
+MatrixHardDrive.prototype.loadMapFile=function(contents){
+	var that=window.mhd;
+	that.regions.loadRegionsFromString(contents);	
+};
+MatrixHardDrive.prototype.loadModelObjectsFromMapFile=function(contents){
+	var that=window.mhd;
+	that.regions.loadRegionsFromString_modelObjects(contents);	
+};
+MatrixHardDrive.prototype.linkSaveFile=function(contents,strFilename,strLinkname){
+	var a=document.getElementById(strLinkname);
+	if(strFilename)a.setAttribute("download",strFilename);
+	var blob=new Blob([contents],{type:"text/plain"});
+	var strUrl=URL.createObjectURL(blob);
+	a.setAttribute("href",strUrl);
+};
+MatrixHardDrive.prototype.addRoadInPoint=function(){
+	if(undefined==this.vec3intersectedPoint){
+		alert("Select point in editor mode first");
+		return;
+	}
+	var raycaster=new THREE.Raycaster();
+	var vec3lookat;
+	if(false==this.blnCameraLookat)
+		vec3lookat=new THREE.Vector3(1,1,1);
+	else{
+		vec3lookat=new THREE.Vector3(1,1,1);
+		var vec3target=this.controls.target;	
+		var vec3cameraPosition=this.camera.position;
+		vec3lookat.subVectors(vec3target,vec3cameraPosition).normalize();
+	}
+	var vec3point0=this.vec3intersectedPoint.clone();
+	var fltdx=1,fltdy=1,fltdz=1;
+	var vec3point1=new THREE.Vector3();
+	vec3point1.x=vec3point0.x+fltdx*vec3lookat.x;
+	vec3point1.y=vec3point0.y+fltdy*vec3lookat.y;
+	vec3point1.z=vec3point0.z+fltdz*vec3lookat.z;
+	var vec3point2=new THREE.Vector3();
+	vec3point2.x=vec3point0.x+2*fltdx*vec3lookat.x;
+	vec3point2.y=vec3point0.y+2*fltdy*vec3lookat.y;
+	vec3point2.z=vec3point0.z+2*fltdz*vec3lookat.z;
+	var lstVec3points=[vec3point0,vec3point1,vec3point2];
+	raycaster.ray.direction.set(0,-1,0);
+	var flty,vec3point;
+	var landscapeMesh=this.regions.lstLandscapeObjects[this.regions.intActualRegion].mesh;
+	if(undefined!=landscapeMesh){
+		var lstIntersections;
+		for(var ii=0;ii<lstVec3points.length;ii++){
+			vec3point=lstVec3points[ii];
+			raycaster.ray.origin.set(vec3point.x,50,vec3point.z);
+			lstIntersections=raycaster.intersectObject(landscapeMesh);
+			if(0!=lstIntersections.length){
+				flty=lstIntersections[0].point.y+this.fltRoadHeight;
+				vec3point.y=flty;
+			}
+		}
+	}
+	var lstReturn=this.regions.lstRoadsObjects[this.regions.intActualRegion].pushAndCreateRoadFromPoints(lstVec3points,this.fltDefaultRoadWidth,this.regions.lstLandscapeObjects[this.regions.intActualRegion],this.regions.lstGrids[this.regions.intActualRegion]);
+};
+MatrixHardDrive.prototype.deleteSelectedRoad=function(){
+};
+MatrixHardDrive.prototype.save=function(blob,filename){
+	this.link.href=URL.createObjectURL(blob);
+	this.link.download=filename;
+	this.link.click();
+};
+MatrixHardDrive.prototype.saveString=function(text,filename){
+	this.save(new Blob([text],{type:"text/plain"}),filename);
+};
+MatrixHardDrive.prototype.saveArrayBuffer=function(buffer,filename){
+	this.save(new Blob([buffer],{type:"application/octet-stream"}),filename);
+};
+MatrixHardDrive.prototype.exportGLTF=function(input){
+	this.link=document.createElement("a");
+	this.link.style.display="none";
+	document.body.appendChild(this.link);
+	var gltfExporter=new GLTFExporter();
+	var options={
+		trs:false,
+		onlyVisible:false,
+		truncateDrawRange:false,
+		binary:true,
+		maxTextureSize:4096||Infinity//To prevent NaN value
+	};
+	gltfExporter.parse(input,function(result){
+		var that=window.mhd;
+		if(result instanceof ArrayBuffer){
+			that.saveArrayBuffer(result,"scene.glb");
+		}else{
+			var strOutput=JSON.stringify(result,null,2);
+			that.saveString(strOutput,"scene.gltf");
+		}
+	},options);
+};
+MatrixHardDrive.prototype.exportCar=function(){
+	var carModel=this.carModel.clone();
+	carModel.scale.multiplyScalar(10);
+	this.exportGLTF(carModel);
+	var trailerModel;
+	if(undefined!=this.carModel.lstTrailerModels){
+		for(var ii=0;ii<this.carModel.lstTrailerModels.length;ii++){
+			trailerModel=this.carModel.lstTrailerModels[ii].clone();
+			trailerModel.scale.multiplyScalar(10);
+			this.exportGLTF(trailerModel);
+		}
+	}
+};
+MatrixHardDrive.prototype.furtherOptions=function(){
+	var divInfo=document.getElementById("info");
+	var strStyleDisplay=divInfo.style.display;
+	if(""==strStyleDisplay)divInfo.style.display="none";
+	else divInfo.style.display="";
+};
+MatrixHardDrive.prototype.exportVisibleScene=function(){
+	this.exportGLTF(this.scene);
+};
+MatrixHardDrive.prototype.openFile=function(func){
+	var arrNames;
+	var readFile=function(e){
+		var file=e.target.files[0];
+		if(!file){
+			return;
+		}
+		var reader=new FileReader();
+		reader.onload=function(e){
+			var contents=e.target.result;
+			fileInput.func(contents);
+			document.body.removeChild(fileInput);
+		};
+		reader.readAsText(file);
+	};
+	var fileInput=document.createElement("input");
+	fileInput.type="file";
+	fileInput.style.display="none";
+	fileInput.onchange=readFile;
+	fileInput.func=func;
+	document.body.appendChild(fileInput);
+	var that=window.mhd;
+	that.clickElem(fileInput);
+};
+MatrixHardDrive.prototype.clickElem=function(elem){
+	var eventMouse=document.createEvent("MouseEvents");
+	eventMouse.initMouseEvent("click",true,false,window,0,0,0,0,0,false,false,false,false,0,null);
+	elem.dispatchEvent(eventMouse);
+};
+MatrixHardDrive.prototype.nonNumber=function(a){
+	if("number"!=typeof(a))return true;
+	if(true==Number.isNaN(a))return true;
+	return false;
+};
+window.mhd=new MatrixHardDrive();
+window.mhd.init();
+window.mhd.renderer.setAnimationLoop(window.mhd.render);
+		</script>
+
+	</body>
+</html>
