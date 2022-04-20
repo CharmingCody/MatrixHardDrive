@@ -1,0 +1,25 @@
+Discovered bugs, not solved yet:
+================================
+|-Clicking error: When clicking on button or checkbox in the Controls it blocks the main ingame keyboard functionality. To get the main ingame keyboard functionality again, you have to click on the >Controls title to collapse the Controls and then click somewhere in the window to get the main ingame keyboard functionality again.
+|=
+|-Textwrapping error: editing one long line in the wrap mode sometimes does not align well, the cursor can go after the screen boundaries.
+|-Command counter not working for all commands: "x","u","ctrl+r".
+|-Finding and highlighting the pairing brackets.
+|-Indent n lines after "n>>" indents also one line before and thus n+1 lines are indented. The same also with "n<<".
+|-Undo, redo indenting lines does not undoes, redoes the indent, it undoes, redoes the previous operation, e.x. entering the text.
+|-the "read" command alias opens text file instead of inserting the external content.
+|-There is no way to run the freeFastCruncher command that rolls back the settings from the initFastCruncher functions with the freeFastCruncher function. Naturally you can always quickly launch that function from the extension file or the console. Anyway, such "1modeCommand" will be added in the future versions.
+|-Load dictionary only when InchesKeyboard is checked and dictionary has not been loaded previously.
+Changes:
+========
+|-The Computer and Three.js lib modifications: now full ShaderThinkpad support in the computer - modified more three.js codes - generally compatibility with the 126 revision with minor changes.
+-also other mhd files have been modified to compute smooth with the newest revisions of three.js where the compatibility with the 126 revision was not broken, e.x. in mhd_MatrixHardDriveObjects.js:
+class ...Geometry extends THREE.BufferGeometry{
+instead of traditional prototypes.
+In derived objects we have left traditional prototypes, since we are traditionalists.
+Nevertheless full 100% compatibility straight with the newest versions of three.js requires resignation of many cool MHD features, therefore much more three.js-modiffs.
+|-README.md modifications:
+|-Uploaded example shaders, like TunnelDrive.glsl that is great e.x. as a few lines of code background for the gps navigation screen, heh, the Me vs. Me winner in the Shader Showdown competition :-P
+|-Changes section to the documentation.
+
+

@@ -1,5 +1,7 @@
-import * as THREE from "../three.js-master/build/three.module.js";
-import {ExtensionManager,The_Netspaces} from "./mhd_TheNetspacesLite.js"
+//r126
+//import * as THREE from "../three.js-master/build/three.module.js";
+import * as THREE from "./three.js-modiffs/mhd_three.module.js";
+import{ExtensionManager,The_Netspaces} from "./mhd_TheNetspacesLite.js"
 
 var netspace=null;
 var ComputerConstructor=function(that,lstPrograms){
@@ -3256,6 +3258,8 @@ Computer.prototype.updateScreenMesh=function(){
 	}
 };
 Computer.prototype.loopFunction=function(currentFrameTime){
+	if(null!=netspace.shaderThinkpad)
+		netspace.shaderThinkpad.render();
 	if(null!=this.theActualProgram){
 		this.theActualProgram.loopFunction(currentFrameTime);
 		if(true==this.blnTextMode)
@@ -14222,7 +14226,9 @@ Program_TextEditor.prototype.openDefaultShaderText=function(intShaderSlot){
 		this.setStatus("Shader thinkpad not loaded - load it first");
 		return;
 	}
-	var content=netspace.shaderThinkpad.getShaderText("shaderThinkpad-fragment");
+	//mhdmodiff
+	//var content=netspace.shaderThinkpad.getShaderText("shaderThinkpad-fragment");
+	var content=netspace.shaderThinkpad.getShaderText_text("shaderThinkpad","fragment");
 	var objArgs={};
 	netspace.shaderThinkpad.lstStrActualShaders[intShaderSlot]=content;
 	this.wndEditing.loadEditingText(netspace.shaderThinkpad.lstStrActualShaders[intShaderSlot],"shaderThinkpad");
@@ -15635,10 +15641,73 @@ function TheComputerInit(blnTextDiv,lstDimensions,strMode){
 var ShaderThinkpadConstructor_strF=function(that,blnExternalTextureRenderer,superShaderThinkpad){
 };
 var ShaderThinkpadConstructor=function(that,blnExternalTextureRenderer,superShaderThinkpad){
+	that.lstStrShaders_vertex={};
+	that.lstStrShaders_fragment={};
+	that.lstStrShaders_vertex["shaderThinkpad"]=
+'precision mediump float;'+String.fromCharCode(10)+
+'attribute vec3 vec3vertex;'+String.fromCharCode(10)+
+'void main()'+String.fromCharCode(10)+
+'{'+String.fromCharCode(10)+
+'	gl_Position=vec4(vec3vertex.x,vec3vertex.y,vec3vertex.z,1.0);'+String.fromCharCode(10)+
+'}';
+	that.lstStrShaders_fragment["shaderThinkpad"]=
+'precision mediump float;'+String.fromCharCode(10)+
+'uniform vec2 v2Resolution;'+String.fromCharCode(10)+
+'uniform float fGlobalTime;'+String.fromCharCode(10)+
+'/*uniform sampler1D texFFT;*/'+String.fromCharCode(10)+
+'/*uniform sampler2D texture0;*/'+String.fromCharCode(10)+
+'/*uniform vec2 vec2texture0size;*/'+String.fromCharCode(10)+
+'/*uniform sampler2D texture1;*/'+String.fromCharCode(10)+
+'/*uniform vec2 vec2texture1size;*/'+String.fromCharCode(10)+
+'/*uniform sampler2D shader1;*/'+String.fromCharCode(10)+
+'/*uniform vec2 vec2shader1size;*/'+String.fromCharCode(10)+
+'vec4 getColor09(int nr){'+String.fromCharCode(10)+
+'	vec4 vec4colors[10];'+String.fromCharCode(10)+
+'	vec4colors[0]=vec4(1.,1.,1.,1.);'+String.fromCharCode(10)+
+'	vec4colors[1]=vec4(0.,0.,0.,1.);'+String.fromCharCode(10)+
+'	vec4colors[2]=vec4(1.,.23,0.,1.);'+String.fromCharCode(10)+
+'	vec4colors[3]=vec4(1.,1.,0.,1.);'+String.fromCharCode(10)+
+'	vec4colors[4]=vec4(0.,1.,0.,1.);'+String.fromCharCode(10)+
+'	vec4colors[5]=vec4(1.,0.,0.,1.);'+String.fromCharCode(10)+
+'	vec4colors[6]=vec4(1.,.2,.59,1.);'+String.fromCharCode(10)+
+'	vec4colors[7]=vec4(.5,0.,.5,1.);'+String.fromCharCode(10)+
+'	vec4colors[8]=vec4(.39,.2,0.,1.);'+String.fromCharCode(10)+
+'	vec4colors[9]=vec4(0.,0.,1.,1.);'+String.fromCharCode(10)+
+'	for(int i=0;i<10;i++){'+String.fromCharCode(10)+
+'		if(nr==i)return vec4colors[i];'+String.fromCharCode(10)+
+'	}'+String.fromCharCode(10)+
+'	return vec4(0.);'+String.fromCharCode(10)+
+'}'+String.fromCharCode(10)+
+'vec4 net(vec2 uv){'+String.fromCharCode(10)+
+'	if(0.==floor(mod(fGlobalTime,60.)))'+String.fromCharCode(10)+
+'		return (0.==floor(mod(50.*uv.y,10.))||0.==floor(mod(150.*uv.x,10.)))?vec4(0.,0.,0.,1.):vec4(1.,.23,0.,1.);'+String.fromCharCode(10)+
+'	else return (0.==floor(mod(50.*uv.y,10.))||0.==floor(mod(150.*uv.x,10.)))?vec4(1.,.23,0.,1.):vec4(0.,0.,0.,1.);'+String.fromCharCode(10)+
+'}'+String.fromCharCode(10)+
+'void main(void){'+String.fromCharCode(10)+
+'	vec2 uv=vec2(gl_FragCoord.x/v2Resolution.x,gl_FragCoord.y/v2Resolution.y);'+String.fromCharCode(10)+
+'	uv-=0.5;'+String.fromCharCode(10)+
+'	uv/=vec2(v2Resolution.y/v2Resolution.x,1);'+String.fromCharCode(10)+
+'	vec2 m;'+String.fromCharCode(10)+
+'	m.x=atan(uv.x/uv.y)/3.14;'+String.fromCharCode(10)+
+'	m.y=1./length(uv)*.2;'+String.fromCharCode(10)+
+'	float d=m.y;'+String.fromCharCode(10)+
+'	/*float f=texture1D(texFFT,d).r*100;*/'+String.fromCharCode(10)+
+'	float f=0.;'+String.fromCharCode(10)+
+'	m.x+=sin(fGlobalTime)*0.1;'+String.fromCharCode(10)+
+'	m.y+=fGlobalTime*0.25;'+String.fromCharCode(10)+
+'	d=clamp(d,1.,10.);'+String.fromCharCode(10)+
+'	float fltColorMagnitude=0.5;'+String.fromCharCode(10)+
+'	vec4 t=fltColorMagnitude*net(m*3.14)/d;'+String.fromCharCode(10)+
+'	t=clamp(t,0.0,1.0);'+String.fromCharCode(10)+
+'	gl_FragColor=f+t;'+String.fromCharCode(10)+
+'	/*gl_FragColor=getColor09(1);*/'+String.fromCharCode(10)+
+'}';
 	that.blnExternalTextureRenderer=blnExternalTextureRenderer;
 	if(null!=superShaderThinkpad)
 		that.superShaderThinkpad=superShaderThinkpad;
 	that.lstShaderPrograms=[];
+	//mhdmodiff
+	netspace.lstExternalEmptyColor=[0,0,0,0];
 	that.canvas=null;
 	that.gl=null;
 	that.lstFramebuffers=[null];
@@ -15680,8 +15749,12 @@ var ShaderThinkpadConstructor=function(that,blnExternalTextureRenderer,superShad
 		that.copyTextureSlots(that.superShaderThinkpad);
 	}
 	if(false==blnExternalTextureRenderer){
-		that.lstShaderPrograms.push(getShaderProgram(that.gl,"shaderThinkpad"));
-		that.lstStrActualShaders.push(that.getShaderText("shaderThinkpad-fragment"));
+		//mhdmodiff
+		//that.lstShaderPrograms.push(getShaderProgram(that.gl,"shaderThinkpad"));
+		that.lstShaderPrograms.push(that.getShaderProgram_text(that.gl,"shaderThinkpad"));
+		//mhdmodiff
+		//that.lstStrActualShaders.push(getShaderText("shaderThinkpad-fragment"));
+		that.lstStrActualShaders.push(that.getShaderText_text(that.gl,"shaderThinkpad","fragment"));
 	}else{
 		that.copyShaderPrograms_externalTextureRenderer(that.superShaderThinkpad);
 	}
@@ -16015,6 +16088,54 @@ ShaderThinkpad.prototype.getShaderText=function(id){
 	if(null!=strText)if(String.fromCharCode(10)==strText[0]||String.fromCharCode(13)==strText[0])strText=strText.substring(1);
 	return strText;
 };
+ShaderThinkpad.prototype.getShaderText_text=function(gl,id,strShaderType){
+	var strText;
+	if("fragment"==strShaderType){
+		strText=this.lstStrShaders_fragment[id];
+	}
+	if("vertex"==strShaderType){
+		strText=this.lstStrShaders_vertex[id];
+	}
+	return strText;
+};
+ShaderThinkpad.prototype.getShader_text=function(gl,id,strShaderType){
+	var strText,theShader=null;
+	strText=this.getShaderText_text(gl,id,strShaderType);
+	if("fragment"==strShaderType){
+		theShader=gl.createShader(gl.FRAGMENT_SHADER);
+	}
+	if("vertex"==strShaderType){
+		theShader=gl.createShader(gl.VERTEX_SHADER);
+	}
+	if(null==theShader)
+		return null;
+	gl.shaderSource(theShader,strText);
+	gl.compileShader(theShader);
+	if(!gl.getShaderParameter(theShader,gl.COMPILE_STATUS)){
+		alert(gl.getShaderInfoLog(theShader));
+		return null;
+	}
+	return theShader;
+};
+ShaderThinkpad.prototype.getShaderFromSource_text=function(gl,strShaderSource,strShaderType){
+	var strText,theShader=null;
+	strText=strShaderSource;
+	if("fragment"==strShaderType){
+		theShader=gl.createShader(gl.FRAGMENT_SHADER);
+	}
+	if("vertex"==strShaderType){
+		theShader=gl.createShader(gl.VERTEX_SHADER);
+	}
+	if(null==theShader)
+		return null;
+	gl.shaderSource(theShader,strText);
+	gl.compileShader(theShader);
+	if(!gl.getShaderParameter(theShader,gl.COMPILE_STATUS)){
+		alert(gl.getShaderInfoLog(theShader));
+		return null;
+	}
+	return theShader;
+};
 ShaderThinkpad.prototype.getFragmentShader=function(gl,strShader){
 	var theShader=gl.createShader(gl.FRAGMENT_SHADER);
 	gl.shaderSource(theShader,strShader);
@@ -16028,6 +16149,34 @@ ShaderThinkpad.prototype.getFragmentShader=function(gl,strShader){
 ShaderThinkpad.prototype.getShaderProgram=function(gl,strShader){
 	var vertexShader=getShader(gl,"shaderThinkpad-vertex"); 
 	var fragmentShader=this.getFragmentShader(gl,strShader);
+	var shaderProgram=gl.createProgram();
+	gl.attachShader(shaderProgram,vertexShader);
+	gl.attachShader(shaderProgram,fragmentShader);
+	gl.linkProgram(shaderProgram);
+	if(!gl.getProgramParameter(shaderProgram,gl.LINK_STATUS))
+		alert("Program link error: "+gl.getShaderInfoLog(shaderProgram));
+	return shaderProgram;
+};
+ShaderThinkpad.prototype.getShaderProgram_text=function(gl,strShaderName){
+	//mhdmodiff
+	//var vertexShader=getShader(gl,"shaderThinkpad-vertex"); 
+	var vertexShader=this.getShader_text(gl,"shaderThinkpad","vertex"); 
+	//mhdmodiff
+	//var fragmentShader=this.getFragmentShader(gl,strShader);
+	//var fragmentShader=this.getShaderText_text(gl,strShader,"fragment");
+	//var fragmentShader=this.getShader_text(gl,"shaderThinkpad","fragment");
+	var fragmentShader=this.getShader_text(gl,strShaderName,"fragment");
+	var shaderProgram=gl.createProgram();
+	gl.attachShader(shaderProgram,vertexShader);
+	gl.attachShader(shaderProgram,fragmentShader);
+	gl.linkProgram(shaderProgram);
+	if(!gl.getProgramParameter(shaderProgram,gl.LINK_STATUS))
+		alert("Program link error: "+gl.getShaderInfoLog(shaderProgram));
+	return shaderProgram;
+};
+ShaderThinkpad.prototype.getShaderProgramFromSource_text=function(gl,strShaderSource){
+	var vertexShader=this.getShader_text(gl,"shaderThinkpad","vertex"); 
+	var fragmentShader=this.getShaderFromSource_text(gl,strShaderSource,"fragment");
 	var shaderProgram=gl.createProgram();
 	gl.attachShader(shaderProgram,vertexShader);
 	gl.attachShader(shaderProgram,fragmentShader);
@@ -16073,13 +16222,18 @@ ShaderThinkpad.prototype.copyShaderPrograms_externalTextureRenderer=function(sha
 	for(var intShaderSlot=0;intShaderSlot<shaderThinkpad2.lstShaderPrograms.length;intShaderSlot++){
 		this.lstIntWidths[intShaderSlot]=netspace.intQuickTextureHeight;
 		this.lstIntHeights[intShaderSlot]=netspace.intQuickTextureHeight;
-		this.lstShaderPrograms.push(this.getShaderProgram(this.gl,shaderThinkpad2.lstStrActualShaders[intShaderSlot]));
+		//mhdmodiff
+		//this.lstShaderPrograms.push(this.getShaderProgram(this.gl,shaderThinkpad2.lstStrActualShaders[intShaderSlot]));
+		this.lstShaderPrograms.push(this.getShaderProgram_text(this.gl,shaderThinkpad2.lstStrActualShaders[intShaderSlot]));
 		this.lstStrActualShaders.push(shaderThinkpad2.lstStrActualShaders[intShaderSlot]);
 	}
 };
 ShaderThinkpad.prototype.compileShader=function(strShader,intShaderSlot){
 	try{
-	this.lstShaderPrograms[intShaderSlot]=this.getShaderProgram(this.gl,strShader);
+	//mhdmodiff
+	//this.lstShaderPrograms[intShaderSlot]=this.getShaderProgram(this.gl,strShader);
+	//this.lstShaderPrograms[intShaderSlot]=this.getShaderProgram_text(this.gl,strShader);
+	this.lstShaderPrograms[intShaderSlot]=this.getShaderProgramFromSource_text(this.gl,strShader);
 	}catch(xcp){
 		alert(xcp);
 		return;
@@ -16092,7 +16246,9 @@ ShaderThinkpad.prototype.compileShader=function(strShader,intShaderSlot){
 	if(intShaderSlot>0)
 		this.initTextureFramebuffers();
 	if(true==netspace.blnLoad3dWorldsOnStart&&true==netspace.chkUseExternalQuickTextures.checked&&null!=this.externalTextureRenderer){
-			this.externalTextureRenderer.lstShaderPrograms[intShaderSlot]=this.getShaderProgram(this.externalTextureRenderer.gl,strShader);
+			//mhdmodiff
+			//this.externalTextureRenderer.lstShaderPrograms[intShaderSlot]=this.getShaderProgram(this.externalTextureRenderer.gl,strShader);
+			this.externalTextureRenderer.lstShaderPrograms[intShaderSlot]=this.getShaderProgram_text(this.externalTextureRenderer.gl,strShader);
 			this.externalTextureRenderer.checkFramebufferSetting(intShaderSlot);
 			this.externalTextureRenderer.initShaderPrograms();
 			this.lstStrActualShaders[intShaderSlot]=strShader;
@@ -16384,6 +16540,22 @@ var ShaderThinkpadManagerConstructor=function(that,shaderThinkpad){
 	}
 
 };
+function chkShaderThinkpadChanged(){
+	if(null==netspace)return;
+	netspace.chkShaderThinkpad=document.getElementById("chkShaderThinkpad");
+	if(undefined!=netspace.computer){
+		if(false==netspace.chkShaderThinkpad.checked)
+			netspace.computer.lstConsoleGray=netspace.shaderThinkpad.shaderThinkpadManager.lstConsoleGrayWithout;
+		else{
+			//mhdmodiff
+			//if(null==netspace.shaderThinkpad)loadShaderThinkpad();
+			if(null==netspace.shaderThinkpad)netspace.computer.loadShaderThinkpad();
+			netspace.computer.lstConsoleGray=netspace.shaderThinkpad.shaderThinkpadManager.lstConsoleGrayWith;
+		}
+	}else{
+		alert("Load computer extension first - shaderThinkpad is compatible only with computer.");
+	}
+}
 var ShaderThinkpadManager=function(shaderThinkpad){
 	ShaderThinkpadManagerConstructor(this,shaderThinkpad);
 	ShaderThinkpadManagerConstructor_strF(this,shaderThinkpad);

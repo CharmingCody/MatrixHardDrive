@@ -1,18 +1,36 @@
-import * as THREE from "../three.js-master/build/three.module.js";
-import{GLTFLoader} from "../three.js-master/examples/jsm/loaders/GLTFLoader.js";
-import{DRACOLoader} from "../three.js-master/examples/jsm/loaders/DRACOLoader.js";
-import{DDSLoader} from "../three.js-master/examples/jsm/loaders/DDSLoader.js";
-import{MTLLoader} from "../three.js-master/examples/jsm/loaders/MTLLoader.js";
-import{OBJLoader} from "../three.js-master/examples/jsm/loaders/OBJLoader.js";
+//r126
+//import * as THREE from "../three.js-master/build/three.module.js";
+import * as THREE from "./three.js-modiffs/mhd_three.module.js";
+//import{GLTFLoader} from "../three.js-master/examples/jsm/loaders/GLTFLoader.js";
+import{GLTFLoader} from "./three.js-modiffs/mhd_GLTFLoader.js";
+//import{DRACOLoader} from "../three.js-master/examples/jsm/loaders/DRACOLoader.js";
+import{DRACOLoader} from "./three.js-modiffs/mhd_DRACOLoader.js";
+//import{MTLLoader} from "../three.js-master/examples/jsm/loaders/MTLLoader.js";
+import{MTLLoader} from "./three.js-modiffs/mhd_MTLLoader.js";
+//import{OBJLoader} from "../three.js-master/examples/jsm/loaders/OBJLoader.js";
+import{OBJLoader} from "./three.js-modiffs/mhd_OBJLoader.js";
 import{AdvancedCurve} from "./mhd_AdvancedCurve.js";
+/*
 var TriangleSelectorGeometry=function(){
+	//super();
 	THREE.BufferGeometry.call(this);
+	//this=new THREE.BufferGeometry();
 	this.setAttribute("position",new THREE.BufferAttribute(new Float32Array(4*3),3));
 };
 TriangleSelectorGeometry.prototype=Object.create(THREE.BufferGeometry.prototype);
 TriangleSelectorGeometry.prototype.update=function(){
 	//done manually
 };
+*/
+class TriangleSelectorGeometry extends THREE.BufferGeometry{
+	constructor(){
+		super();
+		this.setAttribute("position",new THREE.BufferAttribute(new Float32Array(4*3),3));
+	}
+	update(){
+
+	}
+}
 var TriangleSelectorObject=function(){
 	this.strType="TriangleSelectorObject";
 	this.blnSelectWhole=true;
@@ -623,6 +641,7 @@ LandscapeObject.prototype.setCurrentBlnTransparency=function(){
 LandscapeObject.prototype.traverse=function(callback){
 	return this.mesh.traverse(callback);
 };
+/*
 var RoadGeometry=function(curve,intDivisions,fltWidth,landscape,vec3fixedNormal){
 	THREE.BufferGeometry.call(this);
 
@@ -778,6 +797,169 @@ RoadGeometry.prototype.update=function(curve,intDivisions,fltWidth,landscape,vec
 	
 	this.extrudeRoad();
 };
+*/
+class RoadGeometry extends THREE.BufferGeometry{
+	constructor(curve,intDivisions,fltWidth,landscape,vec3fixedNormal){
+	//THREE.BufferGeometry.call(this);
+		super();
+
+		this.intMaxDivisions=2000;
+		this.intDivisions=intDivisions;
+		this.fltWidth=fltWidth;
+		this.curve=curve;
+		this.landscape=landscape;
+	};
+//RoadGeometry.prototype=Object.create(THREE.BufferGeometry.prototype);
+//RoadGeometry.prototype.extrudeRoad=function(){
+	extrudeRoad=function(){
+		var minX=-1.*this.fltWidth/2.;
+		var maxX=this.fltWidth/2.;
+
+		var lstVertices=[];
+		var lstNormals=[];
+		this.lstVec3roadVertices=[];
+		this.lstVec3roadNormals=[];
+		var lstVec3roadVertices=this.lstVec3roadVertices;
+		var lstVec3roadNormals=this.lstVec3roadNormals;
+
+		var vec3up=new THREE.Vector3(0,1,0);
+		var vec3forward=new THREE.Vector3();
+		var vec3right=new THREE.Vector3();
+
+		var quaternion=new THREE.Quaternion();
+		var prevQuaternion=new THREE.Quaternion();
+		prevQuaternion.setFromAxisAngle(vec3up,Math.PI/2);
+
+		var vec3fixedNormal=new THREE.Vector3();
+		var planeQuaternion=new THREE.Quaternion();
+		vec3fixedNormal=this.curve.getFixedNormalAt(0/this.intDivisions,this.landscape);
+		this.getFixedNormalPlaneQuaternion(vec3fixedNormal,planeQuaternion);
+		planeQuaternion.multiply(prevQuaternion);
+		prevQuaternion=planeQuaternion.clone();
+		var vec3point=new THREE.Vector3();
+		var vec3prevPoint=new THREE.Vector3();
+		vec3prevPoint.copy(this.curve.getPointAt(0,this.landscape));
+		var lstVec3planeShape=[];
+		var intDivs=1;//plane "x-axis" intDivisions to extrude
+		var intI=minX;
+		for (var j=0;j<=intDivs;j++){
+			lstVec3planeShape.push(new THREE.Vector3(intI,0,0));
+			intI+=(maxX-minX)/intDivs;
+		}
+
+		var vec3vector1=new THREE.Vector3();
+		var vec3vector2=new THREE.Vector3();
+		var vec3vector3=new THREE.Vector3();
+		var vec3vector4=new THREE.Vector3();
+
+		var vec3normal1=new THREE.Vector3();
+		var vec3normal2=new THREE.Vector3();
+		var vec3normal3=new THREE.Vector3();
+		var vec3normal4=new THREE.Vector3();
+
+		var vec3offset=new THREE.Vector3();
+		var vec3shapeNormal=new THREE.Vector3();
+		var lstShapeNormals=[];
+
+		for(var ii=0;ii<=this.intDivisions;ii++){
+
+			vec3point.copy(this.curve.getPointAt(ii/this.intDivisions,this.landscape));
+			vec3shapeNormal.copy(this.curve.getNormalAt(ii/this.intDivisions,this.landscape));
+			lstShapeNormals=[vec3shapeNormal.clone(),vec3shapeNormal.clone()];
+			vec3fixedNormal=this.curve.getFixedNormalAt(ii/this.intDivisions,this.landscape);
+			this.getFixedNormalPlaneQuaternion(vec3fixedNormal,planeQuaternion);
+
+			vec3up.set(0,1,0);
+			vec3forward.subVectors(vec3point,vec3prevPoint).normalize();
+			vec3right.crossVectors(vec3up,vec3forward).normalize();
+
+			var fltAngle=Math.atan2(vec3forward.x,vec3forward.z);
+
+			quaternion.setFromAxisAngle(vec3up,fltAngle);
+			planeQuaternion.multiply(quaternion);
+
+			this.extrudeShape(lstVec3planeShape,vec3offset.set(0,0,0),lstShapeNormals,vec3point,vec3prevPoint,planeQuaternion,prevQuaternion,vec3vector1,vec3vector2,vec3vector3,vec3vector4,lstVertices,vec3normal1,vec3normal2,vec3normal3,vec3normal4,lstNormals);
+
+			vec3prevPoint.copy(vec3point);
+			prevQuaternion.copy(planeQuaternion);
+		}
+
+		this.setAttribute("position",new THREE.BufferAttribute(new Float32Array(lstVertices),3));
+		this.setAttribute("normal",new THREE.BufferAttribute(new Float32Array(lstNormals),3));
+		this.arrPositions=this.getAttribute("position").array;
+		this.arrNormals=this.getAttribute("normal").array;
+	};
+//RoadGeometry.prototype.extrudeShape=function(lstVec3shape,vec3offset,lstShapeNormals,vec3point,vec3prevPoint,planeQuaternion,prevQuaternion,vec3vector1,vec3vector2,vec3vector3,vec3vector4,lstVertices,vec3normal1,vec3normal2,vec3normal3,vec3normal4,lstNormals){
+	extrudeShape=function(lstVec3shape,vec3offset,lstShapeNormals,vec3point,vec3prevPoint,planeQuaternion,prevQuaternion,vec3vector1,vec3vector2,vec3vector3,vec3vector4,lstVertices,vec3normal1,vec3normal2,vec3normal3,vec3normal4,lstNormals){
+
+		var intLstVec3shapeLenght=lstVec3shape.length;
+		for(var ii=0;ii<intLstVec3shapeLenght;ii++){
+			var vec3point1=lstVec3shape[ii];
+			var vec3point2=lstVec3shape[(ii+1)%intLstVec3shapeLenght];
+
+			var vec3normal1=lstShapeNormals[ii];
+			var vec3normal2=lstShapeNormals[(ii+1)%intLstVec3shapeLenght];
+
+			vec3vector1.copy(vec3point1).add(vec3offset);
+			vec3vector1.applyQuaternion(planeQuaternion);
+			vec3vector1.add(vec3point);
+
+			vec3vector2.copy(vec3point2).add(vec3offset);
+			vec3vector2.applyQuaternion(planeQuaternion);
+			vec3vector2.add(vec3point);
+
+			vec3vector3.copy(vec3point2).add(vec3offset);
+			vec3vector3.applyQuaternion(prevQuaternion);
+			vec3vector3.add(vec3prevPoint);
+
+			vec3vector4.copy(vec3point1).add(vec3offset);
+			vec3vector4.applyQuaternion(prevQuaternion);
+			vec3vector4.add(vec3prevPoint);
+
+			lstVertices.push(vec3vector1.x,vec3vector1.y,vec3vector1.z);
+			lstVertices.push(vec3vector2.x,vec3vector2.y,vec3vector2.z);
+			lstVertices.push(vec3vector4.x,vec3vector4.y,vec3vector4.z);
+
+			lstVertices.push(vec3vector2.x,vec3vector2.y,vec3vector2.z);
+			lstVertices.push(vec3vector3.x,vec3vector3.y,vec3vector3.z);
+			lstVertices.push(vec3vector4.x,vec3vector4.y,vec3vector4.z);
+
+			vec3normal1.copy(vec3normal1);
+
+			vec3normal2.copy(vec3normal2);
+
+			vec3normal3.copy(vec3normal2);
+
+			vec3normal4.copy(vec3normal1);
+
+			lstNormals.push(vec3normal1.x,vec3normal1.y,vec3normal1.z);
+			lstNormals.push(vec3normal2.x,vec3normal2.y,vec3normal2.z);
+			lstNormals.push(vec3normal4.x,vec3normal4.y,vec3normal4.z);
+
+			lstNormals.push(vec3normal2.x,vec3normal2.y,vec3normal2.z);
+			lstNormals.push(vec3normal3.x,vec3normal3.y,vec3normal3.z);
+			lstNormals.push(vec3normal4.x,vec3normal4.y,vec3normal4.z);
+		}
+	};
+//RoadGeometry.prototype.getFixedNormalPlaneQuaternion=function(vec3fixedNormal,planeQuaternion){
+	getFixedNormalPlaneQuaternion=function(vec3fixedNormal,planeQuaternion){
+		if(undefined==vec3fixedNormal){
+			planeQuaternion.setFromAxisAngle(new THREE.Vector3(1,0,0),0);
+		}else{
+			planeQuaternion.setFromUnitVectors(new THREE.Vector3(0,1,0),vec3fixedNormal);
+		}
+	};
+//RoadGeometry.prototype.update=function(curve,intDivisions,fltWidth,landscape,vec3fixedNormal){
+	update=function(curve,intDivisions,fltWidth,landscape,vec3fixedNormal){
+		this.intDivisions=intDivisions;
+		this.fltWidth=fltWidth;
+		this.curve=curve;
+		this.landscape=landscape;
+		
+		this.extrudeRoad();
+	};
+
+}
 var RoadObject=function(curve,intDivisions,fltWidth,landscape,vec3fixedNormal){
 	this.strType="RoadObject";
 	this.superRoadsObject=null;
@@ -1137,6 +1319,7 @@ RoadsObject.prototype.getIIfromRoad=function(roadObject){
 RoadsObject.prototype.getIIfromCurve=function(advancedCurveObject){
 	return this.lstAdvancedCurves.indexOf(advancedCurveObject);
 };
+/*
 var SkyGeometry=function(){
 
 	THREE.BufferGeometry.call(this);
@@ -1158,6 +1341,27 @@ SkyGeometry.prototype.update=function(){
 	this.setAttribute("position",new THREE.BufferAttribute(new Float32Array(lstVertices),3));
 	this.computeBoundingBox();
 	//this.computeBoundingSphere();
+};
+*/
+class SkyGeometry extends THREE.BufferGeometry{
+	constructor(){
+		super();
+		var lstVertices=[];
+
+		//TODO
+
+		this.setAttribute("position",new THREE.BufferAttribute(new Float32Array(lstVertices),3));
+		this.arrPositions=this.getAttribute("position").array;
+	}
+	update=function(){
+		var lstVertices=[];
+
+		//TODO
+
+		this.setAttribute("position",new THREE.BufferAttribute(new Float32Array(lstVertices),3));
+		this.computeBoundingBox();
+		//this.computeBoundingSphere();
+	};
 };
 var SkyObject=function(){
 	this.strType="SkyObject";
@@ -1205,6 +1409,7 @@ SkyObject.prototype.setCurrentBlnTransparency=function(){
 SkyObject.prototype.traverse=function(callback){
 	return this.mesh.traverse(callback);
 };
+/*
 var TreesGeometry=function(landscape,road,intTrees){
 
 	THREE.BufferGeometry.call(this);
@@ -1399,6 +1604,203 @@ TreesGeometry.prototype.updateObject=function(lstPositions,lstHeights,lstAngles,
 	this.computeBoundingBox();
 	//this.computeBoundingSphere();
 };
+*/
+class TreesGeometry extends THREE.BufferGeometry{
+	constructor(landscape,road,intTrees){
+		//THREE.BufferGeometry.call(this);
+		super();
+		var lstVertices=[];
+		var lstColors=[];
+		this.lstColors=[];
+		this.lstPositions=[];
+		this.lstHeights=[];
+		this.lstAngles=[];
+
+		var raycaster=new THREE.Raycaster();
+		raycaster.ray.direction.set(0,-1,0);
+
+		var fltX,fltY,fltZ,fltHeight,fltAngle,fltR,fltG,fltB,fltRandom;
+		var lstIntersections;
+
+		for(var i=0;i<intTrees;i++){
+
+			fltX=Math.random()*500-250;
+			fltZ=Math.random()*500-250;
+
+
+			raycaster.ray.origin.set(fltX,50,fltZ);
+			lstIntersections=raycaster.intersectObject(road);
+
+			if(0!=lstIntersections.length)continue;
+
+			raycaster.ray.origin.set(fltX,50,fltZ);
+
+			lstIntersections=raycaster.intersectObject(landscape);
+
+			if(0==lstIntersections.length)continue;
+
+			fltY=lstIntersections[0].point.y;
+
+			fltHeight=Math.random()*5+0.5;
+
+			fltAngle=Math.random()*Math.PI*2;
+			this.lstPositions.push(new THREE.Vector3(fltX,fltY,fltZ));
+			this.lstHeights.push(fltHeight);
+			this.lstAngles.push(fltAngle);
+
+			lstVertices.push(fltX+Math.sin(fltAngle),fltY,fltZ+Math.cos(fltAngle));
+			lstVertices.push(fltX,fltY+fltHeight,fltZ);
+			lstVertices.push(fltX+Math.sin(fltAngle+Math.PI),fltY,fltZ+Math.cos(fltAngle+Math.PI));
+
+			fltAngle+=Math.PI/2;
+
+			lstVertices.push(fltX+Math.sin(fltAngle),fltY,fltZ+Math.cos(fltAngle));
+			lstVertices.push(fltX,fltY+fltHeight,fltZ);
+			lstVertices.push(fltX+Math.sin(fltAngle+Math.PI),fltY,fltZ+Math.cos(fltAngle+Math.PI));
+
+			fltRandom=Math.random()*0.1;
+
+			for(var j=0;j<6;j++){
+
+				fltR=0.2+fltRandom;fltG=0.4+fltRandom;fltB=0.;
+				lstColors.push(fltR,fltG,fltB);
+				this.lstColors.push(new THREE.Vector3(fltR,fltG,fltB));
+			}
+
+		}
+
+		this.setAttribute("position",new THREE.BufferAttribute(new Float32Array(lstVertices),3));
+		this.setAttribute("color",new THREE.BufferAttribute(new Float32Array(lstColors),3));
+		this.arrPositions=this.getAttribute("position").array;
+		this.arrColors=this.getAttribute("color").array;
+	};
+
+	update=function(landscape,road,intTrees){
+		var lstVertices=[];
+		var lstColors=[];
+		this.lstColors=[];
+		this.lstPositions=[];
+		this.lstHeights=[];
+		this.lstAngles=[];
+
+		var raycaster=new THREE.Raycaster();
+		raycaster.ray.direction.set(0,-1,0);
+
+		var fltX,fltY,fltZ,fltHeight,fltAngle,fltR,fltG,fltB,fltRandom;
+		var lstIntersections;
+
+		for(var i=0;i<intTrees;i++){
+
+			fltX=Math.random()*500-250;
+			fltZ=Math.random()*500-250;
+
+
+			raycaster.ray.origin.set(fltX,50,fltZ);
+			lstIntersections=raycaster.intersectObject(road);
+
+			if(0!=lstIntersections.length)continue;
+
+			raycaster.ray.origin.set(fltX,50,fltZ);
+
+			lstIntersections=raycaster.intersectObject(landscape);
+
+			if(0==lstIntersections.length)continue;
+
+			fltY=lstIntersections[0].point.y;
+
+			fltHeight=Math.random()*5+0.5;
+
+			fltAngle=Math.random()*Math.PI*2;
+
+			this.lstPositions.push(new THREE.Vector3(fltX,fltY,fltZ));
+			this.lstHeights.push(fltHeight);
+			this.lstAngles.push(fltAngle);
+
+			lstVertices.push(fltX+Math.sin(fltAngle),fltY,fltZ+Math.cos(fltAngle));
+			lstVertices.push(fltX,fltY+fltHeight,fltZ);
+			lstVertices.push(fltX+Math.sin(fltAngle+Math.PI),fltY,fltZ+Math.cos(fltAngle+Math.PI));
+
+			fltAngle+=Math.PI/2;
+
+			lstVertices.push(fltX+Math.sin(fltAngle),fltY,fltZ+Math.cos(fltAngle));
+			lstVertices.push(fltX,fltY+fltHeight,fltZ);
+			lstVertices.push(fltX+Math.sin(fltAngle+Math.PI),fltY,fltZ+Math.cos(fltAngle+Math.PI));
+
+			fltRandom=Math.random()*0.1;
+
+			for(var j=0;j<6;j++){
+
+				fltR=0.2+fltRandom;fltG=0.4+fltRandom;fltB=0.;
+				lstColors.push(fltR,fltG,fltB);
+				this.lstColors.push(new THREE.Vector3(fltR,fltG,fltB));
+
+			}
+
+		}
+		this.setAttribute("position",new THREE.BufferAttribute(new Float32Array(lstVertices),3));
+		this.setAttribute("color",new THREE.BufferAttribute(new Float32Array(lstColors),3));
+		this.computeBoundingBox();
+		//this.computeBoundingSphere();
+	};
+	updateObject=function(lstPositions,lstHeights,lstAngles,lstColors){
+
+		var lstVertices=[];
+		var lstColors=[];
+
+		this.lstColors=lstColors;
+		this.lstPositions=lstPositions;
+		this.lstHeights=lstHeights;
+		this.lstAngles=lstAngles;
+
+		var fltX,fltY,fltZ,fltHeight,fltAngle,fltR,fltG,fltB;
+		var intAmount=lstHeights.length;
+		var vec3position,vec3color;
+		for(var i=0;i<intAmount;i++){
+			vec3position=lstPositions[i];
+			fltX=vec3position.x;
+			fltY=vec3position.y;
+			fltZ=vec3position.z;
+
+			fltHeight=lstHeights[i];
+			fltAngle=lstAngles[i];
+
+			lstVertices.push(fltX+Math.sin(fltAngle),fltY,fltZ+Math.cos(fltAngle));
+			lstVertices.push(fltX,fltY+fltHeight,fltZ);
+			lstVertices.push(fltX+Math.sin(fltAngle+Math.PI),fltY,fltZ+Math.cos(fltAngle+Math.PI));
+
+			fltAngle+=Math.PI/2;
+
+			lstVertices.push(fltX+Math.sin(fltAngle),fltY,fltZ+Math.cos(fltAngle));
+			lstVertices.push(fltX,fltY+fltHeight,fltZ);
+			lstVertices.push(fltX+Math.sin(fltAngle+Math.PI),fltY,fltZ+Math.cos(fltAngle+Math.PI));
+
+			for(var j=0;j<6;j++){
+
+				vec3color=lstColors[i+j];
+				fltR=vec3color.x;
+				fltG=vec3color.y;
+				fltB=vec3color.z;
+				lstColors.push(fltR,fltG,fltB);
+
+			}
+
+		}
+
+		this.arrPositions=this.getAttribute("position").array;
+		this.arrColors=this.getAttribute("color").array;
+		for(var i=0;i<this.arrPositions.length;i++)
+			this.arrPositions[i]=lstVertices[i];
+		for(var i=0;i<this.arrColors.length;i++)
+			this.arrColors[i]=lstColors[i];
+		//var newRange=this.arrPositions.length;
+		//this.setDrawRange(0,newRange);
+		this.attributes.position.needsUpdate=true;
+		this.attributes.color.needsUpdate=true;
+		this.computeBoundingBox();
+		//this.computeBoundingSphere();
+	};
+
+};
 var TreesObject=function(landscape,road,intTrees){
 	this.strType="TreesObject";
 	this.intTrees=intTrees;
@@ -1484,6 +1886,7 @@ TreesObject.prototype.setCurrentBlnTransparency=function(){
 TreesObject.prototype.traverse=function(callback){
 	return this.mesh.traverse(callback);
 };
+/*
 var ModelObject=function(strId,strName,str_lstStrFilename,strFiletype,vec3position,vec3rotation,vec3scale,loaderFunction,finalizeFunction){
 	this.strType="ModelObject";
 	this.blnSelectWhole=true;
@@ -1547,7 +1950,6 @@ var ModelObject=function(strId,strName,str_lstStrFilename,strFiletype,vec3positi
 				};
 			break;
 		case "obj+mtl":
-			manager.addHandler(/\.dds$/i,new DDSLoader());
 			manager.addHandler(/\.JPG$/i,new THREE.TextureLoader());
 			this.loaderFunction=function(){
 				new MTLLoader(manager)
@@ -1716,6 +2118,242 @@ ModelObject.prototype.dispose=function(){
 		material.dispose();
 		texture.dispose();
 	}
+};
+*/
+
+class ModelObject extends THREE.BufferGeometry{
+	constructor(strId,strName,str_lstStrFilename,strFiletype,vec3position,vec3rotation,vec3scale,loaderFunction,finalizeFunction){
+		super();
+		this.strType="ModelObject";
+		this.blnSelectWhole=true;
+		this.blnSelectVertices=false;
+		this.lstUndoEntries=[];
+		this.lstRedoEntries=[];
+		this.strId=strId;
+		this.strName=strName;
+		this.str_lstStrFilename=str_lstStrFilename;
+		this.strFiletype=strFiletype;
+		this.vec3position=vec3position;
+		this.vec3rotation=vec3rotation;
+		this.vec3scale=vec3scale;
+		var objectModel;
+		var thisModelObject=this;
+		this.mesh=null;
+		this.finalizeFunction=finalizeFunction;
+		this.manager=new THREE.LoadingManager();
+		var manager=this.manager;
+		this.loaderFunction=null;
+
+		var onProgress=function(xhr){
+			if(xhr.lengthComputable){
+				var percentComplete=xhr.loaded/xhr.total*100;
+				console.log(Math.round(percentComplete,2)+"%downloaded");
+
+			}
+
+		};
+		var onError=function(xcp){console.log("file load error");console.log(xcp);};
+		if(null!=loaderFunction)this.loaderFunction=loaderFunction;
+		else{
+			switch(this.strFiletype){
+				case "gltf":
+					this.loaderFunction=function(){
+						var dracoLoader=new DRACOLoader();
+						dracoLoader.setDecoderPath("js/libs/draco/gltf/");
+
+						var loader=new GLTFLoader();
+						loader.setDRACOLoader(dracoLoader);
+
+						loader.load(str_lstStrFilename,function(gltf){
+
+							thisModelObject.mesh=new THREE.Object3D();
+							thisModelObject.mesh.add(gltf.scene.children[0]);
+
+							thisModelObject.mesh.position.x=vec3position.x;
+							thisModelObject.mesh.position.y=vec3position.y;
+							thisModelObject.mesh.position.z=vec3position.z;
+							thisModelObject.mesh.rotation.x=vec3rotation.x;
+							thisModelObject.mesh.rotation.y=vec3rotation.y;
+							thisModelObject.mesh.rotation.z=vec3rotation.z;
+							thisModelObject.mesh.scale.x=vec3scale.x;
+							thisModelObject.mesh.scale.y=vec3scale.y;
+							thisModelObject.mesh.scale.z=vec3scale.z;
+							//thisModelObject.mesh.layers.enable(1);
+							thisModelObject.mesh.traverse(function(object){object.layers.enable(1);});
+							console.log("gltf loaded");
+						});
+
+					};
+				break;
+			case "obj+mtl":
+				manager.addHandler(/\.JPG$/i,new THREE.TextureLoader());
+				this.loaderFunction=function(){
+					new MTLLoader(manager)
+						.setPath(str_lstStrFilename[0])
+						.load(str_lstStrFilename[1],function(materials){
+							materials.preload();
+							new OBJLoader(manager)
+								.setMaterials(materials)
+								.setPath(str_lstStrFilename[0])
+								.load(str_lstStrFilename[2],function(obj){
+									thisModelObject.mesh=new THREE.Object3D();
+									//thisModelObject.mesh.add(obj);
+									thisModelObject.mesh.add(obj.children[0]);
+									thisModelObject.mesh.position.x=vec3position.x;
+									thisModelObject.mesh.position.y=vec3position.y;
+									thisModelObject.mesh.position.z=vec3position.z;
+									thisModelObject.mesh.rotation.x=vec3rotation.x;
+									thisModelObject.mesh.rotation.y=vec3rotation.y;
+									thisModelObject.mesh.rotation.z=vec3rotation.z;
+									thisModelObject.mesh.scale.x=vec3scale.x;
+									thisModelObject.mesh.scale.y=vec3scale.y;
+									thisModelObject.mesh.scale.z=vec3scale.z;
+									//thisModelObject.mesh.layers.enable(1);
+									thisModelObject.mesh.traverse(function(object){object.layers.enable(1);});
+									console.log("obj+mtl loaded");
+
+								},onProgress,onError);
+
+						});
+
+				};
+			break;
+
+			case "obj":
+				this.loaderFunction=function(){
+					new OBJLoader(manager)
+						.load(str_lstStrFilename[0]+str_lstStrFilename[1],function(obj){
+							thisModelObject.mesh=new THREE.Object3D();
+							thisModelObject.mesh.add(obj);
+							thisModelObject.mesh.position.x=vec3position.x;
+							thisModelObject.mesh.position.y=vec3position.y;
+							thisModelObject.mesh.position.z=vec3position.z;
+							thisModelObject.mesh.rotation.x=vec3rotation.x;
+							thisModelObject.mesh.rotation.y=vec3rotation.y;
+							thisModelObject.mesh.rotation.z=vec3rotation.z;
+							thisModelObject.mesh.scale.x=vec3scale.x;
+							thisModelObject.mesh.scale.y=vec3scale.y;
+							thisModelObject.mesh.scale.z=vec3scale.z;
+							//thisModelObject.mesh.layers.enable(1);
+							thisModelObject.mesh.traverse(function(object){object.layers.enable(1);});
+							console.log("obj loaded");
+
+						},onProgress,onError);
+
+				};
+			break;
+			case "texture":
+
+			break;
+
+			}
+		}
+		if(this.loaderFunction!=null)
+			this.loaderFunction();
+		
+	};
+	addToRegionSubscene=function(regionSubscene){
+		regionSubscene.add(this.mesh);
+	};
+	removeFromRegionSubscene=function(regionSubscene){
+		regionSubscene.remove(this.mesh);
+		if(undefined!=this.instanciatedModelMesh)
+			regionSubscene.remove(this.instanciatedModelMesh);
+	};
+	setColorHex=function(colorHex){
+		this.mesh.traverse(function(object){
+			if(undefined!=object.material)object.material.color.setHex(colorHex);	
+		});
+	};
+	getColorHex=function(){
+		var currentHex=null;
+		this.mesh.traverse(function(object){
+			if(undefined!=object.material)currentHex=object.material.color.getHex();	
+			
+		});
+		if(null!=currentHex)return currentHex;
+		else return 0xffffff;
+	};
+	setCurrentColorHex=function(){
+		this.currentHex=this.getColorHex();
+		//TODO:currentHex[]
+	};
+	setFltOpacity=function(fltOpacity){
+		this.mesh.traverse(function(object){
+			if(undefined!=object.material)object.material.opacity=fltOpacity;	
+		});
+	};
+	getFltOpacity=function(){
+		var currentFltOpacity=null;
+		this.mesh.traverse(function(object){
+			if(undefined!=object.material)currentFltOpacity=object.material.opacity;	
+			
+		});
+		if(null!=currentFltOpacity)return currentFltOpacity;
+		else return 1.0;
+	};
+	setCurrentFltOpacity=function(){
+		this.currentFltOpacity=this.getFltOpacity();
+		//TODO:currentHex[]
+	};
+	setBlnTransparency=function(blnTransparency){
+		this.mesh.traverse(function(object){
+			if(undefined!=object.material)object.material.transparent=blnTransparency;	
+		});
+	};
+	getBlnTransparency=function(){
+		var currentBlnTransparency=null;
+		this.mesh.traverse(function(object){
+			if(undefined!=object.material)currentBlnTransparency=object.material.transparent;	
+			
+		});
+		if(null!=currentBlnTransparency)return currentBlnTransparency;
+		else return true;
+	};
+	setCurrentBlnTransparency=function(){
+		this.currentBlnTransparency=this.getBlnTransparency();
+		//TODO:currentHex[]
+	};
+	move=function(vec2diff,strAxis,fltScale){
+		switch(strAxis){
+			case "x":
+				this.mesh.position.x+=(vec2diff.x+vec2diff.y)*fltScale;
+			break;
+			case "y":
+				this.mesh.position.y+=(vec2diff.x+vec2diff.y)*fltScale;
+			break;
+			case "z":
+				this.mesh.position.z+=(vec2diff.x+vec2diff.y)*fltScale;
+			break;
+			case "l"://TODO:camera lookat
+
+			break;
+		}
+	};
+	clone=function(){
+		var dst=new ModelObject(this.strId+"_",this.strName,this.str_lstStrFilename,this.strFiletype,this.vec3position,this.vec3rotation,this.vec3scale,function(){},function(){});
+		dst.blnSelectWhole=this.blnSelectWhole;
+		dst.blnSelectVertices=this.blnSelectVertices;
+		dst.lstUndoEntries=this.lstUndoEntries;//TODO
+		dst.lstRedoEntries=this.lstRedoEntries;//TODO
+		dst.mesh=this.mesh.clone();
+		dst.mesh.layers.enable(1);
+		return dst;
+	};
+	traverse=function(callback){
+		return this.mesh.traverse(callback);
+	};
+	dispose=function(){
+		if(this.objectModel!=null){
+			var geometry,material,texture;
+			geometry=this.objectModel.geometry;
+			material=this.objectModel.material;
+			if(null!=material.map)texture=material.map;
+			geometry.dispose();
+			material.dispose();
+			texture.dispose();
+		}
+	};
 };
 var SimpleObject=function(vec3position,vec3rotation,vec3scale,vec3color,texture){
 	this.strType="SimpleObject";

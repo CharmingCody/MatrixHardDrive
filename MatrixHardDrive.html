@@ -69,12 +69,19 @@
 		</div>
 		<div id="container"></div>
 		<script type="module">
-			import * as THREE from "../three.js-master/build/three.module.js";
-			import{GLTFExporter} from "../three.js-master/examples/jsm/exporters/GLTFExporter.js";
-			import{GUI} from "../three.js-master/examples/jsm/libs/dat.gui.module.js";
+			//r126
+			//import * as THREE from "../three.js-master/build/three.module.js";
+			import * as THREE from "./three.js-modiffs/mhd_three.module.js";
+			//import{GLTFExporter} from "../three.js-master/examples/jsm/exporters/GLTFExporter.js";
+			import{GLTFExporter} from "./three.js-modiffs/mhd_GLTFExporter.js";
+			//import{GUI} from "../three.js-master/examples/jsm/libs/dat.gui.module.js";
+			//import{GUI} from "../three.js-master/examples/jsm/libs/lil-gui.module.min.js";
+			import{GUI} from "./three.js-modiffs/mhd_lil-gui.module.min.js";
 			import{OrbitControls,MapControls} from "./three.js-modiffs/mhd_OrbitControls.js";
-			import{TransformControls} from "../three.js-master/examples/jsm/controls/TransformControls.js";
-			import{RoomEnvironment} from "../three.js-master/examples/jsm/environments/RoomEnvironment.js";
+			//import{TransformControls} from "../three.js-master/examples/jsm/controls/TransformControls.js";
+			import{TransformControls} from "./three.js-modiffs/mhd_TransformControls.js";
+			//import{RoomEnvironment} from "../three.js-master/examples/jsm/environments/RoomEnvironment.js";
+			import{RoomEnvironment} from "./three.js-modiffs/mhd_RoomEnvironment.js";
 
 			import{
 				TriangleSelectorObject,
@@ -84,8 +91,11 @@
 			import{RegionManager} from "./mhd_RegionManager.js";
 			import{RoadObject,RoadsObject} from "./mhd_MatrixHardDriveObjects.js";
 
-			import{GLTFLoader} from "../three.js-master/examples/jsm/loaders/GLTFLoader.js";
-			import{DRACOLoader} from "../three.js-master/examples/jsm/loaders/DRACOLoader.js";
+			//r126
+			//import{GLTFLoader} from "../three.js-master/examples/jsm/loaders/GLTFLoader.js";
+			import{GLTFLoader} from "./three.js-modiffs/mhd_GLTFLoader.js";
+			//import{DRACOLoader} from "../three.js-master/examples/jsm/loaders/DRACOLoader.js";
+			import{DRACOLoader} from "./three.js-modiffs/mhd_DRACOLoader.js";
 			import{Computer,Program_Bash,Program_SnakeGame,Program_BinarySnakeGame,Program_DictionaryTraining,Program_Terminal,XWindow,Program_startx,Program_txtFunFunFun,TextWindow,InchesKeyboard,Program_TextEditor} from "./mhd_Computer.js"
 			import{The_Netspaces,ExtensionManager} from "./mhd_TheNetspacesLite.js";
 
@@ -1706,6 +1716,8 @@ MatrixHardDrive.prototype.onPointerDown=function(evtPointer){
 		that.controls.onPointerDown(evtPointer);
 	if(true==that.regions.lstRoadsObjects[that.regions.intActualRegion].isEnabled())
 		that.regions.lstRoadsObjects[that.regions.intActualRegion].onPointerDown(evtPointer);
+	that.gui.$children.blur();
+	that.gui.$title.blur();
 };
 MatrixHardDrive.prototype.updateLookaround=function(){
 	this.vec3forward.x=Math.sin(this.vec2mousePosition.x);

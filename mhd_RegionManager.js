@@ -1,4 +1,6 @@
-import * as THREE from "../three.js-master/build/three.module.js";
+//r126
+//import * as THREE from "../three.js-master/build/three.module.js";
+import * as THREE from "./three.js-modiffs/mhd_three.module.js";
 import{
 	TriangleSelectorGeometry,
 	TriangleSelectorObject,

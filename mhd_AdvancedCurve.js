@@ -1,5 +1,8 @@
-import * as THREE from "../three.js-master/build/three.module.js";
-import{TransformControls} from "../three.js-master/examples/jsm/controls/TransformControls.js";
+//r126
+//import * as THREE from "../three.js-master/build/three.module.js";
+import * as THREE from "./three.js-modiffs/mhd_three.module.js";
+//import{TransformControls} from "../three.js-master/examples/jsm/controls/TransformControls.js";
+import{TransformControls} from "./three.js-modiffs/mhd_TransformControls.js";
 
 var AdvancedCurve=function(){
 	var that=window.mhd;
